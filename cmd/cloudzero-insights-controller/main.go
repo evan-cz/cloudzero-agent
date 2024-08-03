@@ -7,5 +7,5 @@ import (
 )
 
 func main() {
-	fmt.Printf("CloudZero Insights Controller %s\n", build.GetVersion())
+	fmt.Printf("CloudZero Insights Controller: %s\n", build.GetVersion())
 }
