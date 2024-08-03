@@ -52,7 +52,7 @@ LABEL org.opencontainers.image.title="cloudzero-insights-controller"
 LABEL org.opencontainers.image.description="cloudzero insights kubernetes validation adminsion controller"
 LABEL org.opencontainers.image.vendor="Cloudzero, Inc."
 LABEL org.opencontainers.image.licenses="Apache-2.0"
-LABEL org.opencontainers.image.source="https://github.com/Cloudzero/cloudzero-insights-controller"
+LABEL org.opencontainers.image.source = "https://github.com/Cloudzero/cloudzero-insights-controller"
 LABEL io.artifacthub.package.readme-url="https://raw.githubusercontent.com/Cloudzero/cloudzero-insights-controller/main/README.md"
 LABEL io.artifacthub.package.license="Apache-2.0"
 
