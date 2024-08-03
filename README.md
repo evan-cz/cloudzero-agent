@@ -31,7 +31,7 @@ We appreciate feedback and contribution to this repo! Before you get started, pl
 
 - [This repo's contribution guide](CONTRIBUTING.md)
 
-## Support + Feedback
+## 🤔 Support + Feedback
 
 Contact support@cloudzero.com for usage, questions, specific cases. See the [CloudZero Docs](https://docs.cloudzero.com/) for general information on CloudZero.
 
