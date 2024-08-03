@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-Before getting started with the development of the CloudZero Agent Validator, make sure you have the following prerequisites installed on your system:
+Before getting started with the development of the CloudZero Insights Controller, make sure you have the following prerequisites installed on your system:
 
 - [Go 1.22+](https://go.dev/doc/install)
 - [Docker](https://docs.docker.com/engine/install/)
@@ -26,7 +26,7 @@ Before getting started with the development of the CloudZero Agent Validator, ma
 
 ## Development Quick Start
 
-To quickly get started with the development of the CloudZero Agent Validator, follow these steps:
+To quickly get started with the development of the CloudZero Insights Controller, follow these steps:
 
 ### 1. Repository Setup
 
