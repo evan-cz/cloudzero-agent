@@ -6,7 +6,7 @@
 
 <img src="./docs/assets/deployment.png" alt="deployment" width="700">
 
-The `Cloud Insights Controller` provides telemetry to the Cloudzero platform to enabling complex cost allocation and analysis.
+The `CloudZero Insights Controller` provides telemetry to the CloudZero platform to enabling complex cost allocation and analysis.
 
 ## ⚡ Getting Started
 
