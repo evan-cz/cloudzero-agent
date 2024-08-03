@@ -37,7 +37,7 @@ RUN CGO_ENABLED=0 go build \
 # Stage 2: Access current certs
 FROM gcr.io/distroless/static-debian11:debug@sha256:a0a404776dec98be120089ae42bbdfbe48c177921d856937d124d48eb8c0b951 AS certs
 
-# Stage32: Create the distroless image
+# TODO: use busybox for development - switch to "scratch" before release
 FROM busybox:1.36.1-uclibc
 
 # Ensure we have certs for HTTPS requests
