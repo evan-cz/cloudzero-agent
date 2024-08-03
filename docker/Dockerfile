@@ -49,7 +49,7 @@ USER nobody
 WORKDIR /app
 
 LABEL org.opencontainers.image.title="cloudzero-insights-controller"
-LABEL org.opencontainers.image.description="cloudzero-agent execution environment validation utility"
+LABEL org.opencontainers.image.description="cloudzero insights kubernetes validation adminsion controller"
 LABEL org.opencontainers.image.vendor="Cloudzero, Inc."
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 LABEL org.opencontainers.image.source="https://github.com/Cloudzero/cloudzero-insights-controller"
@@ -60,8 +60,8 @@ VOLUME [ "/app/config" ]
 ENV PATH=/app:$PATH
 
 # Copy the Go binary from the builder stage
-COPY --from=builder /go/bin/cloudzero-insights-controller /app/cloudzero-insights-controller
+COPY --from=builder /go/bin/cloudzero-insights-controller /app/controller
 
 # Allow the default ENTRYPOINT from busybox to be the default,
 # however run the app as the default command
-CMD ["/app/cloudzero-insights-controller", "-h"]
+CMD ["/app/controller", "-h"]
