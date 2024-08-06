@@ -36,27 +36,37 @@ const (
 )
 
 var (
+	// Runtime objects for Kubernetes resource processing.
 	runtimeScheme = runtime.NewScheme()
 	codecFactory  = serializer.NewCodecFactory(runtimeScheme)
 	deserializer  = codecFactory.UniversalDeserializer()
 )
 
+// init() methods in golang are executed before the main function.
 func init() {
+	// Initialize Kubernetes schemes for the core, apps, and admission groups.
 	_ = corev1.AddToScheme(runtimeScheme)
 	_ = admission.AddToScheme(runtimeScheme)
 	_ = appsv1.AddToScheme(runtimeScheme)
 }
 
+// admitV1Func is a "type" definition for a function signature
+// admitV1Func functions take an AdmissionReview object and return an AdmissionResponse object.
 type admitV1Func func(admission.AdmissionReview) *admission.AdmissionResponse
 
+// AdmitHandler encapsulates a function that handles an admission review.
+// Designed to allow us to provide multiple versions of the handler over time.
 type AdmitHandler struct {
 	v1 admitV1Func
 }
 
+// NewAdmitHandler creates a new AdmitHandler with the given function.
 func NewAdmitHandler(f admitV1Func) AdmitHandler {
 	return AdmitHandler{v1: f}
 }
 
+// serve handles HTTP requests, processes the body, and sends responses.
+// main web API logic handler for the associated route
 func serve(w http.ResponseWriter, r *http.Request, admit AdmitHandler) {
 	var body []byte
 	if r.Body != nil {
@@ -97,26 +107,43 @@ func serve(w http.ResponseWriter, r *http.Request, admit AdmitHandler) {
 	}
 }
 
+// serveValidate handles HTTP requests for validating resources.
+// Can use NewAdmitHandler here to add version-specific handlers.
 func serveValidate(w http.ResponseWriter, r *http.Request) {
 	serve(w, r, NewAdmitHandler(validate))
 }
 
+// validate checks the resource type of the AdmissionReview and validates it.
+// Must always returns 'Allowed: true' to allow the request.
 func validate(ar admission.AdmissionReview) *admission.AdmissionResponse {
-	log.Info().Msgf("Validating deployments")
+	log.Debug().Msgf("Validating deployments")
 	deploymentResource := metav1.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
+
+	// XXX: we are only handling deployment and pods per our webhooks.yaml manifest
+	// We may want to do other types...
 	if ar.Request.Resource != deploymentResource {
 		return &admission.AdmissionResponse{Result: &metav1.Status{Message: fmt.Sprintf("Expected resource to be %s", deploymentResource)}}
 	}
 
 	var deployment appsv1.Deployment
 	if _, _, err := deserializer.Decode(ar.Request.Object.Raw, nil, &deployment); err != nil {
-		return &admission.AdmissionResponse{Result: &metav1.Status{Message: fmt.Sprintf("Error decoding deployment: %v", err)}}
+		// log the decode error only
+		log.Error().Msgf("Failed to decode deployment: %v", err)
+		return &admission.AdmissionResponse{Allowed: true} // always allow
 	}
 
-	log.Info().Msgf("Deployment validated: %s", deployment.Name)
-	return &admission.AdmissionResponse{Allowed: true}
+	log.Debug().Msgf("Deployment validated: %s", deployment.Name)
+	return &admission.AdmissionResponse{Allowed: true} // always allow
 }
 
+// handleAdmissionReview processes the request body, calling the admit handler
+// note that admit handler is wrapping validate() at this time.
+//
+// validate accepts the admission review object itself.
+// ** But here we could switch on types:
+//
+//	   eg. obj.GetObjectKind() returns a schema.ObjectKind
+//		  switch on the type of object handler accordingly
 func handleAdmissionReview(body []byte, admit AdmitHandler) (*admission.AdmissionReview, error) {
 	var responseObj *admission.AdmissionReview
 	obj, gvk, err := deserializer.Decode(body, nil, nil)
@@ -135,17 +162,19 @@ func handleAdmissionReview(body []byte, admit AdmitHandler) (*admission.Admissio
 	responseAdmissionReview.Response = admit.v1(*requestedAdmissionReview)
 	responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID
 	responseObj = responseAdmissionReview
-
 	return responseObj, nil
 }
 
 func main() {
+	// Parse command line flags while providing defaults
 	var tlsKey, tlsCert string
 	flag.StringVar(&tlsKey, "tlsKey", tlsKeyFilePath, "Path to the TLS key")
 	flag.StringVar(&tlsCert, "tlsCert", tlsCertFilePath, "Path to the TLS certificate")
 	flag.Parse()
 
 	log.Info().Msgf("Starting CloudZero Insights Controller %s", build.GetVersion())
+
+	// create a new server instance with a sane configuration
 	server := &http.Server{
 		Addr:         defaultPort,
 		Handler:      http.DefaultServeMux,
@@ -154,9 +183,16 @@ func main() {
 		IdleTimeout:  idleTimeout,
 	}
 
+	// Register the validate handler handler for any request to the /validate path.
 	http.HandleFunc("/validate", serveValidate)
+
+	// Start the server with TLS enabled, listening on the configured port.
+	// NOTE: returns only on error or graceful exit.
 	if err := server.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
+		// log a fatal message with sets the exit code to 1 and stops the process
 		log.Fatal().Err(err).Msg("Server failed to start")
 	}
+
+	// Print a message when the server is stopped.
 	log.Info().Msg("Server stopped")
 }
