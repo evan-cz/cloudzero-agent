@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-BDIR=$(git rev-parse --show-toplevel)
+root_dir=$(git rev-parse --show-toplevel)
 
 function create_namespace_if_not_exist() {
     if kubectl get namespace application &> /dev/null; then
@@ -15,4 +15,4 @@ function create_namespace_if_not_exist() {
 
 # Simplify command structure and correct the syntax
 create_namespace_if_not_exist
-kubectl apply -f ${BDIR}/manifests/test_deployment.yml -n application
+kubectl apply -f ${root_dir}/manifests/test_deployment.yml -n application
