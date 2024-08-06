@@ -17,5 +17,5 @@ if [ -z "$POD_NAME" ]; then
 else
     echo "Fetching logs from the latest pod: $POD_NAME"
     # Fetch logs
-    kubectl -n ${NAMESPACE} logs -f ${POD_NAME}
+    kubectl -n ${NAMESPACE} logs -f ${POD_NAME} | jq
 fi

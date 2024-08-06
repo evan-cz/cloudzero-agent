@@ -76,7 +76,7 @@ func serve(w http.ResponseWriter, r *http.Request, admit AdmitHandler) {
 		return
 	}
 
-	log.Info().Msgf("Handling request: %s", body)
+	fmt.Println(string(body))
 	responseObj, err := handleAdmissionReview(body, admit)
 	if err != nil {
 		log.Error().Msgf("Error handling admission review: %v", err)
