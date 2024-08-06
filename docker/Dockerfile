@@ -8,6 +8,9 @@ FROM golang:1.22 AS builder
 # Set the working directory inside the container
 WORKDIR /app
 
+# Steal the nobody user for the scratch image
+RUN cat /etc/passwd | grep nobody > /etc/passwd_nobody
+
 # Copy the Go module files and download dependencies
 COPY go.mod go.sum ./
 RUN go mod download
@@ -38,10 +41,14 @@ RUN CGO_ENABLED=0 go build \
 FROM gcr.io/distroless/static-debian11:debug@sha256:a0a404776dec98be120089ae42bbdfbe48c177921d856937d124d48eb8c0b951 AS certs
 
 # TODO: use busybox for development - switch to "scratch" before release
-FROM busybox:1.36.1-uclibc
+#FROM busybox:1.36.1-uclibc
+FROM scratch
 
 # Ensure we have certs for HTTPS requests
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+# Copy the /etc/passwd file with the nobody user
+COPY --from=builder /etc/passwd_nobody /etc/passwd
 
 USER nobody
 
