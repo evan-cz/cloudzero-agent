@@ -56,6 +56,7 @@ LABEL org.opencontainers.image.source = "https://github.com/Cloudzero/cloudzero-
 LABEL io.artifacthub.package.readme-url="https://raw.githubusercontent.com/Cloudzero/cloudzero-insights-controller/main/README.md"
 LABEL io.artifacthub.package.license="Apache-2.0"
 
+EXPOSE 8443
 VOLUME [ "/app/config" ]
 ENV PATH=/app:$PATH
 
@@ -64,4 +65,4 @@ COPY --from=builder /go/bin/cloudzero-insights-controller /app/controller
 
 # Allow the default ENTRYPOINT from busybox to be the default,
 # however run the app as the default command
-CMD ["/app/controller", "-h"]
+CMD ["/app/controller"]
