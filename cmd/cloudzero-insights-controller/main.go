@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: Copyright (c) 2016-2024, CloudZero, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
 package main
 
 import (
@@ -6,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	admission "k8s.io/api/admission/v1"
@@ -19,9 +22,12 @@ import (
 )
 
 const (
-	defaultPort            = ":8443"
-	tlsKeyFilePath  string = "/etc/certs/tls.key"
-	tlsCertFilePath string = "/etc/certs/tls.crt"
+	defaultPort     = ":8443"
+	tlsKeyFilePath  = "/etc/certs/tls.key"
+	tlsCertFilePath = "/etc/certs/tls.crt"
+	readTimeout     = 15 * time.Second
+	writeTimeout    = 15 * time.Second
+	idleTimeout     = 60 * time.Second
 )
 
 const (
@@ -35,99 +41,102 @@ var (
 	deserializer  = codecFactory.UniversalDeserializer()
 )
 
-// add kind AdmissionReview in scheme
 func init() {
 	_ = corev1.AddToScheme(runtimeScheme)
 	_ = admission.AddToScheme(runtimeScheme)
 	_ = appsv1.AddToScheme(runtimeScheme)
 }
 
-type admitv1Func func(admission.AdmissionReview) *admission.AdmissionResponse
+type admitV1Func func(admission.AdmissionReview) *admission.AdmissionResponse
 
-type admitHandler struct {
-	v1 admitv1Func
+type AdmitHandler struct {
+	v1 admitV1Func
 }
 
-func AdmitHandler(f admitv1Func) admitHandler {
-	return admitHandler{
-		v1: f,
-	}
+func NewAdmitHandler(f admitV1Func) AdmitHandler {
+	return AdmitHandler{v1: f}
 }
 
-// serve handles the http portion of a request prior to handing to an admit function
-func serve(w http.ResponseWriter, r *http.Request, admit admitHandler) {
+func serve(w http.ResponseWriter, r *http.Request, admit AdmitHandler) {
 	var body []byte
 	if r.Body != nil {
-		if data, err := io.ReadAll(r.Body); err == nil {
-			body = data
-		}
-	}
-
-	// verify the content type is accurate
-	contentType := r.Header.Get(httpHeaderContentType)
-	if contentType != httpContentTypeJSON {
-		log.Error().Msgf("contentType=%s, expect application/json", contentType)
-		return
-	}
-
-	log.Info().Msgf("handling request: %s", body)
-	var responseObj runtime.Object
-	if obj, gvk, err := deserializer.Decode(body, nil, nil); err != nil {
-		msg := fmt.Sprintf("Request could not be decoded: %v", err)
-		log.Error().Msg(msg)
-		http.Error(w, msg, http.StatusBadRequest)
-		return
-
-	} else {
-		requestedAdmissionReview, ok := obj.(*admission.AdmissionReview)
-		if !ok {
-			log.Error().Msgf("Expected appsv1.AdmissionReview but got: %T", obj)
+		data, err := io.ReadAll(r.Body)
+		if err != nil {
+			log.Error().Msgf("Failed to read request body: %v", err)
+			http.Error(w, fmt.Sprintf("Failed to read request body: %v", err), http.StatusBadRequest)
 			return
 		}
-		responseAdmissionReview := &admission.AdmissionReview{}
-		responseAdmissionReview.SetGroupVersionKind(*gvk)
-		responseAdmissionReview.Response = admit.v1(*requestedAdmissionReview)
-		responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID
-		responseObj = responseAdmissionReview
-
+		body = data
 	}
-	log.Info().Msgf("sending response: %v", responseObj)
-	respBytes, err := json.Marshal(responseObj)
-	if err != nil {
-		log.Err(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+	contentType := r.Header.Get(httpHeaderContentType)
+	if contentType != httpContentTypeJSON {
+		log.Error().Msgf("Expected content-type application/json, got %s", contentType)
+		http.Error(w, "Invalid content-type", http.StatusUnsupportedMediaType)
 		return
 	}
+
+	log.Info().Msgf("Handling request: %s", body)
+	responseObj, err := handleAdmissionReview(body, admit)
+	if err != nil {
+		log.Error().Msgf("Error handling admission review: %v", err)
+		http.Error(w, fmt.Sprintf("Error processing request: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	respBytes, err := json.Marshal(responseObj)
+	if err != nil {
+		log.Error().Msgf("Error marshaling response: %v", err)
+		http.Error(w, fmt.Sprintf("Error encoding response: %v", err), http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set(httpHeaderContentType, httpContentTypeJSON)
 	if _, err := w.Write(respBytes); err != nil {
-		log.Err(err)
+		log.Error().Msgf("Error sending response: %v", err)
 	}
 }
 
 func serveValidate(w http.ResponseWriter, r *http.Request) {
-	serve(w, r, AdmitHandler(validate))
+	serve(w, r, NewAdmitHandler(validate))
 }
 
-// verify if a Deployment has the 'prod' prefix name
 func validate(ar admission.AdmissionReview) *admission.AdmissionResponse {
-	log.Info().Msgf("validating deployments")
+	log.Info().Msgf("Validating deployments")
 	deploymentResource := metav1.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
 	if ar.Request.Resource != deploymentResource {
-		log.Error().Msgf("expect resource to be %s", deploymentResource)
-		return nil
+		return &admission.AdmissionResponse{Result: &metav1.Status{Message: fmt.Sprintf("Expected resource to be %s", deploymentResource)}}
 	}
 
-	deployment := appsv1.Deployment{}
+	var deployment appsv1.Deployment
 	if _, _, err := deserializer.Decode(ar.Request.Object.Raw, nil, &deployment); err != nil {
-		log.Err(err)
-		return &admission.AdmissionResponse{Result: &metav1.Status{Message: err.Error()}}
+		return &admission.AdmissionResponse{Result: &metav1.Status{Message: fmt.Sprintf("Error decoding deployment: %v", err)}}
 	}
 
-	if b, err := json.MarshalIndent(deployment, "", "  "); err == nil {
-		fmt.Println(string(b))
-	}
-
+	log.Info().Msgf("Deployment validated: %s", deployment.Name)
 	return &admission.AdmissionResponse{Allowed: true}
+}
+
+func handleAdmissionReview(body []byte, admit AdmitHandler) (*admission.AdmissionReview, error) {
+	var responseObj *admission.AdmissionReview
+	obj, gvk, err := deserializer.Decode(body, nil, nil)
+	if err != nil {
+		log.Error().Msgf("Request could not be decoded: %v", err)
+		return nil, fmt.Errorf("request could not be decoded: %w", err)
+	}
+
+	requestedAdmissionReview, ok := obj.(*admission.AdmissionReview)
+	if !ok {
+		return nil, fmt.Errorf("expected AdmissionReview but got: %T", obj)
+	}
+
+	responseAdmissionReview := &admission.AdmissionReview{}
+	responseAdmissionReview.SetGroupVersionKind(*gvk)
+	responseAdmissionReview.Response = admit.v1(*requestedAdmissionReview)
+	responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID
+	responseObj = responseAdmissionReview
+
+	return responseObj, nil
 }
 
 func main() {
@@ -137,14 +146,17 @@ func main() {
 	flag.Parse()
 
 	log.Info().Msgf("Starting CloudZero Insights Controller %s", build.GetVersion())
-
-	http.HandleFunc("/validate", serveValidate)
-	log.Info().Msg("Server started ...")
-
-	err := http.ListenAndServeTLS(defaultPort, tlsCert, tlsKey, nil)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Server failed to start")
+	server := &http.Server{
+		Addr:         defaultPort,
+		Handler:      http.DefaultServeMux,
+		ReadTimeout:  readTimeout,
+		WriteTimeout: writeTimeout,
+		IdleTimeout:  idleTimeout,
 	}
 
+	http.HandleFunc("/validate", serveValidate)
+	if err := server.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
+		log.Fatal().Err(err).Msg("Server failed to start")
+	}
 	log.Info().Msg("Server stopped")
 }
