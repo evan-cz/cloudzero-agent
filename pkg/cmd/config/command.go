@@ -56,7 +56,7 @@ func NewCommand(ctx context.Context) *cli.Command {
 						"ClusterName":         c.String(config.FlagClusterName),
 						"Region":              c.String(config.FlagRegion),
 						"CloudzeroHost":       build.PlatformEndpoint,
-						"KubeStateMetricsURL": kubeStateMetricsURL,
+						"KubeStateMetricsURL": "test",
 						"PromNodeExporterURL": nodeExporterURL,
 					}, c.String(config.FlagConfigFile))
 				},
