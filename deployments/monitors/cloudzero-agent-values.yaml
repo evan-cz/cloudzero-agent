@@ -1,6 +1,6 @@
 cloudAccountId: |-
   975482786146
-clusterName: cloudzero-eks-cluster-eksCluster-b4e6994
+clusterName: cloudzero-eks-cluster-eksCluster-45e897d
 region: us-east-2
 existingSecretName: cz-api-token
 

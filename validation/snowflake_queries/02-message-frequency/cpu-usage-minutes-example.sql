@@ -1,8 +1,8 @@
 SET TIMEZONE='UTC';
 SET ORGANIZATION_ID  = '02fa7d30-c3de-4e0a-8f1e-2de120e7fd23';
-SET CLUSTER_NAME = 'aws-jb-cirrus-load-testing-cluster';
-SET START_DATE = '2024-09-26T00:00:00+00:00'::TIMESTAMP_TZ;
-SET END_DATE   = '2024-09-30T00:00:00+00:00'::TIMESTAMP_TZ;
+SET CLUSTER_NAME = 'cloudzero-eks-cluster-eksCluster-45e897d';
+SET START_DATE = '2024-09-30T00:00:00+00:00'::TIMESTAMP_TZ;
+SET END_DATE   = '2024-09-30T02:00:00+00:00'::TIMESTAMP_TZ;
 SET IMPOSSIBLE_VALUE = 100000000000000000000000;
 
 WITH data AS (
@@ -21,7 +21,7 @@ WITH data AS (
     WHERE 1=1
         AND usage_date::TIMESTAMP_TZ BETWEEN $START_DATE AND $END_DATE
         AND organization_id    = $ORGANIZATION_ID
-        AND CLUSTER_NAME IN ($CLUSTER_NAME, $OTHER_CLUSTER_NAME)
+        AND CLUSTER_NAME IN ($CLUSTER_NAME)
 )
 , numeric_data AS (
     SELECT
@@ -44,13 +44,13 @@ WITH data AS (
 , container_cpu_usage_seconds AS (
     SELECT
         DATE_TRUNC('hour', usage_date) AS metrics_hour,
-        cluster_name AS cluster_name,
-        labels:node::string AS node_name,
-        labels:namespace::string AS namespace,
-        labels:pod::string AS kubernetes_pod_name,
-        labels:container::string AS container,
-        usage_date AS usage_date,
-        value AS cpu_usage_seconds_total,
+        cluster_name                   AS cluster_name,
+        labels:node::string            AS node_name,
+        labels:namespace::string       AS namespace,
+        labels:pod::string             AS kubernetes_pod_name,
+        labels:container::string       AS container,
+        usage_date                     AS usage_date,
+        value                          AS cpu_usage_seconds_total,
         LAG(value) OVER (PARTITION BY cluster_name, node_name, kubernetes_pod_name, container ORDER BY usage_date) AS previous_cpu_usage_total,
         LAG(usage_date) OVER (PARTITION BY cluster_name, node_name, kubernetes_pod_name, container ORDER BY usage_date) AS previous_usage_date
     FROM
@@ -60,30 +60,30 @@ WITH data AS (
         AND labels:image IS NOT NULL
         AND labels:container IS NOT NULL
 )
--- group by hour, and count unique nodes
-select 
-    metrics_hour,
-    count(distinct node_name) as unique_nodes
-from container_cpu_usage_seconds
-group by metrics_hour,
+-- 
+-- select 
+--     metrics_hour,
+--     count(distinct node_name) as unique_nodes
+-- from container_cpu_usage_seconds
+-- group by metrics_hour;
 
--- , missing_records AS ( 
---     SELECT 
---         kubernetes_pod_name,
---         usage_date,
---         DATEDIFF(
---             'second',
---             LAG(usage_date) OVER (PARTITION BY kubernetes_pod_name ORDER BY usage_date),
---             usage_date
---         ) AS usage_time_diff_seconds,
---         LAG(usage_date) OVER (PARTITION BY kubernetes_pod_name ORDER BY usage_date) AS previous_usage_date,
---         cluster_name,
---         node_name,
---         namespace
---     FROM container_cpu_usage_seconds
--- )
--- SELECT 
---     * 
--- FROM missing_records
--- -- WHERE usage_time_diff_seconds > 120
--- ORDER BY kubernetes_pod_name, usage_date asc;
+, missing_records AS ( 
+    SELECT 
+        kubernetes_pod_name,
+        usage_date,
+        DATEDIFF(
+            'second',
+            LAG(usage_date) OVER (PARTITION BY kubernetes_pod_name ORDER BY usage_date),
+            usage_date
+        ) AS usage_time_diff_seconds,
+        LAG(usage_date) OVER (PARTITION BY kubernetes_pod_name ORDER BY usage_date) AS previous_usage_date,
+        cluster_name,
+        node_name,
+        namespace
+    FROM container_cpu_usage_seconds
+)
+SELECT 
+    * 
+FROM missing_records
+-- WHERE usage_time_diff_seconds > 120
+ORDER BY kubernetes_pod_name, usage_date asc;

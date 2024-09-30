@@ -21,4 +21,3 @@ To access the Prometheus dashboard, follow these steps:
 3. **Open the Browser**:
 
     Open your browser and navigate to [http://localhost:9090](http://localhost:9090) to access the Prometheus dashboard.
-

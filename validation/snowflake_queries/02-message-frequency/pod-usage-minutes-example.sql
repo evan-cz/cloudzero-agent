@@ -1,9 +1,10 @@
 SET TIMEZONE='UTC';
 SET ORGANIZATION_ID  = '02fa7d30-c3de-4e0a-8f1e-2de120e7fd23';
-SET CLUSTER_NAME = 'aws-jb-cirrus-load-testing-cluster';
-SET START_DATE = '2024-09-26T00:00:00+00:00'::TIMESTAMP_TZ;
+SET CLUSTER_NAME = 'cloudzero-eks-cluster-eksCluster-45e897d';
+SET START_DATE = '2024-09-29T00:00:00+00:00'::TIMESTAMP_TZ;
 SET END_DATE   = '2024-09-30T00:00:00+00:00'::TIMESTAMP_TZ;
 SET IMPOSSIBLE_VALUE = 100000000000000000000000;
+
 
 
 WITH data AS (
@@ -22,7 +23,7 @@ WITH data AS (
     WHERE 1=1
         AND usage_date::TIMESTAMP_TZ BETWEEN $START_DATE AND $END_DATE
         AND organization_id    = $ORGANIZATION_ID
-        AND CLUSTER_NAME IN ($CLUSTER_NAME, $OTHER_CLUSTER_NAME)
+        AND CLUSTER_NAME IN ($CLUSTER_NAME)
 )
 , pod_info AS (
     -- find the unique pod info records
@@ -62,5 +63,5 @@ SELECT
     * 
 FROM missing_pod_records
 -- over 15 minutes between records for the same node
-WHERE usage_time_diff_seconds > 60
+--WHERE usage_time_diff_seconds > 60
 ORDER BY kubernetes_pod_name, usage_date DESC;

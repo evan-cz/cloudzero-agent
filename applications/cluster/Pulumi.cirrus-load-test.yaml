@@ -7,5 +7,5 @@ config:
   machine:max: "2"
   machine:desired: "2"
   machine:min: "1"
-  machine:type: c5.xlarge
-  machine:max_pods: "1000"
+  machine:type: t3.small
+  machine:max_pods: "110"

@@ -2,7 +2,7 @@ use database live_billing;
 SET ORGANIZATION_ID  = '02fa7d30-c3de-4e0a-8f1e-2de120e7fd23';
 SET YEAR_TIME   = '2024';
 SET MONTH_TIME  = '09';
-SET DAY_TIME    = '26';
+SET DAY_TIME    = '30';
 
 WITH TIMESERIES AS (
     SELECT
@@ -22,8 +22,8 @@ WITH TIMESERIES AS (
         organization_id = $ORGANIZATION_ID
         AND year        = $YEAR_TIME
         AND month       = $MONTH_TIME
-        AND day         = $DAY_TIME
-        AND hour        in ('18', '19', '20', '21', '22', '23')
+        AND day         in ($DAY_TIME)
+        AND hour        in ('00', '01')
 )
 -- select * from TIMESERIES;
 , DATA_ROWS AS (

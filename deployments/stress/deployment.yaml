@@ -10,7 +10,7 @@ metadata:
     owner: jb
     purpose: cirrus-stress-testing
 spec:
-  replicas: 10
+  replicas: 6
   selector:
     matchLabels:
       app: cirrus-stress
