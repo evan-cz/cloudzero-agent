@@ -1,8 +1,8 @@
 SET TIMEZONE='UTC';
 SET ORGANIZATION_ID  = '02fa7d30-c3de-4e0a-8f1e-2de120e7fd23';
 SET CLUSTER_NAME = 'cloudzero-eks-cluster-eksCluster-45e897d';
-SET START_DATE = '2024-09-29T00:00:00+00:00'::TIMESTAMP_TZ;
-SET END_DATE   = '2024-09-30T00:00:00+00:00'::TIMESTAMP_TZ;
+SET START_DATE = '2024-09-30T00:00:00+00:00'::TIMESTAMP_TZ;
+SET END_DATE   = '2024-09-30T23:00:00+00:00'::TIMESTAMP_TZ;
 SET IMPOSSIBLE_VALUE = 100000000000000000000000;
 
 
@@ -35,7 +35,6 @@ WITH data AS (
         labels AS labels
     FROM data
     WHERE labels:__name__::string = 'kube_node_info'
-    -- You can omit GROUP BY if using DISTINCT
 )
 , missing_node_records AS ( 
     SELECT 
@@ -55,4 +54,4 @@ SELECT
 FROM missing_node_records
 -- over 15 minutes between records for the same node
 --WHERE usage_time_diff_seconds > 60
-ORDER BY cluster_name, node_name, usage_date asc;
+ORDER BY cluster_name, node_name, usage_date desc;

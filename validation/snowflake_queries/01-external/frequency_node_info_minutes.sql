@@ -25,7 +25,7 @@ WITH TIMESERIES AS (
         AND year        = $YEAR_TIME
         AND month       = $MONTH_TIME
         AND day         in ($DAY_TIME)
-        AND hour        in ('00', '01', '02')
+        AND hour        in ('00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23')
 )
 -- select * from TIMESERIES;
 , DATA_ROWS AS (
@@ -46,66 +46,63 @@ WITH TIMESERIES AS (
     GROUP BY
         RECORD_ID
 )
-, pod_working_set_memory AS (
+, node_info AS (
+    -- find the unique pod info records
     SELECT
-        DATE_TRUNC('hour', usage_date)   AS metrics_hour,
-        USAGE_DATE                       AS usage_date,
-        organization_id                  AS organization_id,
-        cluster_name                     AS cluster_name,
-        labels:node::string              AS node_name,
-        labels:namespace::string         AS namespace,
-        labels:pod::string               AS kubernetes_pod_name,
-        value::FLOAT                     AS value,
-        labels                           AS labels
+        DISTINCT 
+        usage_date          AS usage_date,
+        cluster_name        AS cluster_name,
+        labels:node::string AS node_name,
+        value               AS value,
+        labels              AS labels
     FROM DATA_ROWS
-    WHERE 1=1
-        AND labels:__name__::string = 'container_memory_working_set_bytes'
-        AND labels:node IS NOT NULL
-        AND labels:pod IS NOT NULL
-        AND labels:container IS NULL
-        AND labels:image IS NULL
+    WHERE labels:__name__::string = 'kube_node_info'
 )
--- SELECT
---     metrics_hour,
---     usage_date,
---     organization_id,
---     cluster_name,
---     node_name,
---     namespace,
---     kubernetes_pod_name,
---     value,
---     labels
--- FROM pod_working_set_memory
--- ORDER BY
---     cluster_name,node_name,namespace,kubernetes_pod_name,usage_date desc;
-, missing_records AS ( 
+, record_with_time_since_last_record AS ( 
     SELECT
         DATE_TRUNC('hour', usage_date) AS metrics_hour,
-        kubernetes_pod_name            AS kubernetes_pod_name,
         usage_date                     AS usage_date,
         DATEDIFF(
             'second',
-            LAG(usage_date) OVER (PARTITION BY cluster_name, node_name, namespace, kubernetes_pod_name ORDER BY usage_date),
+            LAG(usage_date) OVER (PARTITION BY cluster_name, node_name ORDER BY usage_date),
             usage_date
         )                              AS usage_time_diff_seconds,
-        LAG(usage_date) OVER (PARTITION BY cluster_name, node_name, namespace, kubernetes_pod_name ORDER BY usage_date) AS previous_usage_date,
+        LAG(usage_date) OVER (PARTITION BY cluster_name, node_name ORDER BY usage_date) AS previous_usage_date,
         cluster_name                   AS cluster_name,
-        node_name                      AS node_name,
-        namespace                      AS namespace,
-        value                          AS value
-    FROM pod_working_set_memory
+        node_name                      AS node_name
+    FROM node_info
+)
+, record_counts_per_hour AS ( 
+    SELECT
+        metrics_hour                 AS metrics_hour,
+        cluster_name                 AS cluster_name,
+        node_name                    AS node_name,
+        COUNT(*)                     AS usage_record_count,
+        MIN(usage_date)              AS min_usage_date,
+        MAX(usage_date)              AS max_usage_date,
+        AVG(usage_time_diff_seconds) AS avg_sec_between_records
+    FROM record_with_time_since_last_record
+    GROUP BY
+        metrics_hour,
+        cluster_name,
+        node_name
 )
 SELECT 
     metrics_hour,
-    usage_time_diff_seconds
-    usage_date,
-    previous_usage_date,
-    namespace,
-    kubernetes_pod_name,
-    value,
     cluster_name,
-    node_name
-FROM missing_records
---WHERE usage_time_diff_seconds > 120
-ORDER BY cluster_name, namespace, kubernetes_pod_name, usage_date DESC;
+    node_name,
+    usage_record_count,
+    min_usage_date,
+    max_usage_date,
+    avg_sec_between_records
+FROM record_counts_per_hour
+WHERE 1=1
+    -- Reveal the outliers
+--    AND avg_sec_between_records > 60
+ORDER BY 
+    cluster_name,
+    node_name,
+    metrics_hour DESC
+;
+
 

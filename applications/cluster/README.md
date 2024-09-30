@@ -59,9 +59,9 @@ After cloning this repo, run these commands from the working directory:
     pulumi config set cz:purpose training
     pulumi config set machine:type t3.small
     pulumi config set machine:min 1
-    pulumi config set machine:desired 2
-    pulumi config set machine:max 2
-    pulumi config set machine:max_pods 500
+    pulumi config set machine:desired 1
+    pulumi config set machine:max 1
+    pulumi config set machine:max_pods 110
     ```
 
     </details>
