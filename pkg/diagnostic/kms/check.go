@@ -59,7 +59,7 @@ func NewProvider(ctx context.Context, cfg *config.Settings) diagnostic.Provider 
 	}
 }
 
-func (c *checker) Check(ctx context.Context, client *net.Client, accessor status.Accessor) error {
+func (c *checker) Check(ctx context.Context, client *net.Client, accessor status.Accessor, cfg *config.Settings) error {
 	var (
 		retriesRemaining = MaxRetry
 		namespace        = "prom-agent"

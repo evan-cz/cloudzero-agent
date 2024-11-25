@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright (c) 2016-2024, CloudZero, Inc. or its affiliates. All Rights Reserved.
+// SPDX-LicenseCopyrightText: Copyright (c) 2016-2024, CloudZero, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 package cz
 
@@ -32,22 +32,21 @@ func NewProvider(ctx context.Context, cfg *config.Settings) diagnostic.Provider 
 	}
 }
 
-func (c *checker) Check(ctx context.Context, client *net.Client, accessor status.Accessor) error {
-
+func (c *checker) Check(ctx context.Context, client *net.Client, accessor status.Accessor, cfg *config.Settings) error {
 	// Hit an authenticated API to verify the API token
-	url := fmt.Sprintf("%s/v2/insights", c.cfg.Cloudzero.Host)
+	url := fmt.Sprintf("%s/v2/insights", cfg.Cloudzero.Host)
 	_, err := http.Do(
 		ctx, client, net.MethodGet,
 		map[string]string{
-			http.HeaderAuthorization:  strings.TrimSpace(c.cfg.Cloudzero.Credential),
+			http.HeaderAuthorization:  strings.TrimSpace(cfg.Cloudzero.Credential),
 			http.HeaderAcceptEncoding: http.ContentTypeJSON,
 		},
 		nil,
 		// TODO: Add HEAD endpoint for container-metrics/status and pass these to check the API key
 		// map[string]string{
-		// 	http.QueryParamAccountID:   c.cfg.Deployment.AccountID,
-		// 	http.QueryParamRegion:      c.cfg.Deployment.Region,
-		// 	http.QueryParamClusterName: c.cfg.Deployment.ClusterName,
+		// 	http.QueryParamAccountID:   cfg.Deployment.AccountID,
+		// 	http.QueryParamRegion:      cfg.Deployment.Region,
+		// 	http.QueryParamClusterName: cfg.Deployment.ClusterName,
 		// },
 		url, nil,
 	)

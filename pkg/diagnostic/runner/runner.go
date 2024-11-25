@@ -91,7 +91,7 @@ func (r *runner) Run(ctx context.Context) (status.Accessor, error) {
 
 	// Pre steps sequentially
 	for _, pv := range r.pre {
-		if err := pv.Check(ctx, r.client, recorder); err != nil {
+		if err := pv.Check(ctx, r.client, recorder, r.cfg); err != nil {
 			return recorder, err
 		}
 	}
@@ -106,7 +106,7 @@ func (r *runner) Run(ctx context.Context) (status.Accessor, error) {
 		wg.Add(1)
 		go func(wgi *sync.WaitGroup, p diagnostic.Provider, i int) {
 			defer wgi.Done()
-			if err := p.Check(ctx, r.client, recorder); err != nil {
+			if err := p.Check(ctx, r.client, recorder, r.cfg); err != nil {
 				errHistory[i] = err
 			}
 		}(&wg, p, i)
@@ -120,7 +120,7 @@ func (r *runner) Run(ctx context.Context) (status.Accessor, error) {
 
 	// Post steps sequentially
 	for _, ps := range r.post {
-		if err := ps.Check(ctx, r.client, recorder); err != nil {
+		if err := ps.Check(ctx, r.client, recorder, r.cfg); err != nil {
 			return recorder, err
 		}
 	}
@@ -143,7 +143,7 @@ func processFailures(ctx context.Context, recorder status.Accessor, r *runner) f
 				if chkr := r.reg.Get(config.DiagnosticInternalInitFailed); len(chkr) > 0 {
 					// set to read handler since we already hold the lock
 					handleFailure = func() {
-						_ = chkr[0].Check(ctx, r.client, recorder)
+						_ = chkr[0].Check(ctx, r.client, recorder, r.cfg)
 					}
 				}
 				break

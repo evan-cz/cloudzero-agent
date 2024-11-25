@@ -4,10 +4,10 @@ import (
 	"context"
 	net "net/http"
 
-	"github.com/cloudzero/cloudzero-agent-validator/pkg/config"
 	"github.com/cloudzero/cloudzero-agent-validator/pkg/diagnostic"
 	"github.com/cloudzero/cloudzero-agent-validator/pkg/logging"
 	"github.com/cloudzero/cloudzero-agent-validator/pkg/status"
+	"github.com/cloudzero/cloudzero-agent-validator/pkg/config"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,10 +29,9 @@ func NewProvider(ctx context.Context, cfg *config.Settings, stage status.StatusT
 	}
 }
 
-func (c *checker) Check(_ context.Context, _ *net.Client, accessor status.Accessor) error {
+func (c *checker) Check(_ context.Context, _ *net.Client, accessor status.Accessor, _ *config.Settings) error {
 	accessor.WriteToReport(func(s *status.ClusterStatus) {
 		s.State = c.stage
 	})
 	return nil
-
 }
