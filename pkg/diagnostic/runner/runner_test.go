@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/cloudzero/cloudzero-agent-validator/pkg/config"
 	"github.com/cloudzero/cloudzero-agent-validator/pkg/diagnostic/catalog"
 	"github.com/cloudzero/cloudzero-agent-validator/pkg/status"
-	"github.com/cloudzero/cloudzero-agent-validator/pkg/config"
 	"github.com/stretchr/testify/assert"
 )
 
