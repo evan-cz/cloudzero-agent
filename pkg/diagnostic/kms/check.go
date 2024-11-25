@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudzero-cloudzero-agent-validator/pkg/diagnostic"
+	"github.com/cloudzero-cloudzero-agent-validator/pkg/logging"
+	"github.com/cloudzero-cloudzero-agent-validator/pkg/status"
 	"github.com/cloudzero/cloudzero-agent-validator/pkg/config"
-	"github.com/cloudzero/cloudzero-agent-validator/pkg/diagnostic"
-	"github.com/cloudzero/cloudzero-agent-validator/pkg/logging"
-	"github.com/cloudzero/cloudzero-agent-validator/pkg/status"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -20,7 +20,6 @@ import (
 )
 
 const DiagnosticKMS = config.DiagnosticKMS
-const DiagnosticKMSMetrics = "DiagnosticKMSMetrics"
 
 var (
 	// Exported so that it can be overridden in tests
@@ -125,7 +124,7 @@ func (c *checker) Check(ctx context.Context, client *net.Client, accessor status
 			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
 				c.logger.Errorf("Failed to read metrics: %v", err)
-				accessor.AddCheck(&status.StatusCheck{Name: DiagnosticKMSMetrics, Passing: false, Error: fmt.Sprintf("Failed to read metrics: %s", err.Error())})
+				accessor.AddCheck(&status.StatusCheck{Name: DiagnosticKMS, Passing: false, Error: fmt.Sprintf("Failed to read metrics: %s", err.Error())})
 				return nil
 			}
 
@@ -134,13 +133,12 @@ func (c *checker) Check(ctx context.Context, client *net.Client, accessor status
 			for _, metric := range requiredMetrics {
 				if !strings.Contains(metrics, metric) {
 					c.logger.Errorf("Required metric %s not found", metric)
-					accessor.AddCheck(&status.StatusCheck{Name: DiagnosticKMSMetrics, Passing: false, Error: fmt.Sprintf("Required metric %s not found", metric)})
+					accessor.AddCheck(&status.StatusCheck{Name: DiagnosticKMS, Passing: false, Error: fmt.Sprintf("Required metric %s not found", metric)})
 					return nil
 				}
 			}
 
 			accessor.AddCheck(&status.StatusCheck{Name: DiagnosticKMS, Passing: true})
-			accessor.AddCheck(&status.StatusCheck{Name: DiagnosticKMSMetrics, Passing: true})
 			return nil
 		}
 
@@ -149,6 +147,6 @@ func (c *checker) Check(ctx context.Context, client *net.Client, accessor status
 		time.Sleep(RetryInterval)
 	}
 
-	accessor.AddCheck(&status.StatusCheck{Name: DiagnosticKMSMetrics, Passing: false, Error: fmt.Sprintf("Failed to fetch metrics after %d retries", MaxRetry)})
+	accessor.AddCheck(&status.StatusCheck{Name: DiagnosticKMS, Passing: false, Error: fmt.Sprintf("Failed to fetch metrics after %d retries", MaxRetry)})
 	return nil
 }
