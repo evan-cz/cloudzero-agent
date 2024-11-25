@@ -49,7 +49,7 @@ func TestChecker_GetVersion(t *testing.T) {
 			provider := version.NewProvider(context.Background(), cfg)
 			accessor := makeReport()
 
-			err := provider.Check(context.Background(), nil, accessor)
+			err := provider.Check(context.Background(), nil, accessor, cfg)
 			assert.NoError(t, err)
 
 			accessor.ReadFromReport(func(s *status.ClusterStatus) {

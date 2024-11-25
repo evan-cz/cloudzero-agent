@@ -34,11 +34,11 @@ func TestChecker_CheckOK(t *testing.T) {
 	cfg := &config.Settings{}
 
 	// IMPORTANT:
-	// 1. CI/CD will require a known K8s (kind) versionm
-	// 2. If you are running thislocal, I suggest deploying Rancher Desktop
+	// 1. CI/CD will require a known K8s (kind) version
+	// 2. If you are running this locally, I suggest deploying Rancher Desktop
 	//
 	// Ideally we improve our MockTransport to handle this
-	// Allowing us to overide the client config.Transport
+	// Allowing us to override the client config.Transport
 	//
 	// XXX: Replace with the expected version
 	expectedVersion := "1.29"
@@ -50,7 +50,7 @@ func TestChecker_CheckOK(t *testing.T) {
 	client := mock.HTTPClient()
 
 	accessor := makeReport()
-	err := provider.Check(context.Background(), client, accessor)
+	err := provider.Check(context.Background(), client, accessor, cfg)
 	assert.NoError(t, err)
 
 	accessor.ReadFromReport(func(s *status.ClusterStatus) {
@@ -61,5 +61,3 @@ func TestChecker_CheckOK(t *testing.T) {
 		assert.Equal(t, expectedVersion, s.K8SVersion)
 	})
 }
-
-// func TestK8s

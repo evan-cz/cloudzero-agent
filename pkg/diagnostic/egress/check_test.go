@@ -39,7 +39,7 @@ func TestChecker_CheckOK(t *testing.T) {
 
 	accessor := makeReport()
 
-	err := provider.Check(context.Background(), client, accessor)
+	err := provider.Check(context.Background(), client, accessor, cfg)
 	assert.NoError(t, err)
 
 	accessor.ReadFromReport(func(s *status.ClusterStatus) {
@@ -64,7 +64,7 @@ func TestChecker_CheckBadKey(t *testing.T) {
 	client := mock.HTTPClient()
 
 	accessor := makeReport()
-	err := provider.Check(context.Background(), client, accessor)
+	err := provider.Check(context.Background(), client, accessor, cfg)
 	assert.NoError(t, err)
 
 	accessor.ReadFromReport(func(s *status.ClusterStatus) {
@@ -89,7 +89,7 @@ func TestChecker_CheckErrorCondition(t *testing.T) {
 	client := mock.HTTPClient()
 
 	accessor := makeReport()
-	err := provider.Check(context.Background(), client, accessor)
+	err := provider.Check(context.Background(), client, accessor, cfg)
 	assert.NoError(t, err)
 	accessor.ReadFromReport(func(s *status.ClusterStatus) {
 		assert.Len(t, s.Checks, 1)

@@ -30,8 +30,8 @@ func NewProvider(ctx context.Context, cfg *config.Settings) diagnostic.Provider 
 	}
 }
 
-func (c *checker) Check(ctx context.Context, _ *net.Client, accessor status.Accessor) error {
-	if len(c.cfg.Prometheus.Executable) == 0 {
+func (c *checker) Check(ctx context.Context, _ *net.Client, accessor status.Accessor, cfg *config.Settings) error {
+	if len(cfg.Prometheus.Executable) == 0 {
 		accessor.AddCheck(&status.StatusCheck{
 			Name:  DiagnosticPrometheusVersion,
 			Error: "no prometheus binary available at configured location",
@@ -39,7 +39,7 @@ func (c *checker) Check(ctx context.Context, _ *net.Client, accessor status.Acce
 		return nil
 	}
 
-	versionData, err := c.GetVersion(ctx)
+	versionData, err := c.GetVersion(ctx, cfg)
 	if err != nil {
 		accessor.AddCheck(
 			&status.StatusCheck{
@@ -56,8 +56,8 @@ func (c *checker) Check(ctx context.Context, _ *net.Client, accessor status.Acce
 	return nil
 }
 
-func (c *checker) GetVersion(ctx context.Context) ([]byte, error) {
-	executable := c.cfg.Prometheus.Executable
+func (c *checker) GetVersion(ctx context.Context, cfg *config.Settings) ([]byte, error) {
+	executable := cfg.Prometheus.Executable
 	if len(executable) == 0 {
 		return nil, fmt.Errorf("no prometheus binary available at configured location")
 	}
@@ -70,7 +70,7 @@ func (c *checker) GetVersion(ctx context.Context) ([]byte, error) {
 		return nil, fmt.Errorf("prometheus executable is not executable: %s", executable)
 	}
 
-	// create the raw output fle
+	// create the raw output file
 	rawOutput, err := os.CreateTemp(os.TempDir(), ".promver.*")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create raw prometheus version output file: %w", err)

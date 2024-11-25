@@ -36,7 +36,7 @@ func TestChecker_CheckOK(t *testing.T) {
 
 	accessor := makeReport()
 
-	err := provider.Check(context.Background(), client, accessor)
+	err := provider.Check(context.Background(), client, accessor, cfg)
 	assert.NoError(t, err)
 
 	accessor.ReadFromReport(func(s *status.ClusterStatus) {
@@ -68,7 +68,7 @@ func TestChecker_CheckRetry(t *testing.T) {
 
 	accessor := makeReport()
 
-	err := provider.Check(context.Background(), client, accessor)
+	err := provider.Check(context.Background(), client, accessor, cfg)
 	assert.NoError(t, err)
 
 	accessor.ReadFromReport(func(s *status.ClusterStatus) {
@@ -99,7 +99,7 @@ func TestChecker_CheckRetryFailure(t *testing.T) {
 
 	accessor := makeReport()
 
-	err := provider.Check(context.Background(), client, accessor)
+	err := provider.Check(context.Background(), client, accessor, cfg)
 	assert.NoError(t, err)
 
 	accessor.ReadFromReport(func(s *status.ClusterStatus) {
@@ -124,7 +124,7 @@ func TestChecker_CheckMetricsValidation(t *testing.T) {
 
 	accessor := makeReport()
 
-	err := provider.Check(context.Background(), client, accessor)
+	err := provider.Check(context.Background(), client, accessor, cfg)
 	assert.NoError(t, err)
 
 	accessor.ReadFromReport(func(s *status.ClusterStatus) {
@@ -149,7 +149,7 @@ func TestChecker_CheckHandles500Error(t *testing.T) {
 
 	accessor := makeReport()
 
-	err := provider.Check(context.Background(), client, accessor)
+	err := provider.Check(context.Background(), client, accessor, cfg)
 	assert.NoError(t, err)
 
 	accessor.ReadFromReport(func(s *status.ClusterStatus) {
@@ -177,7 +177,7 @@ func TestChecker_CheckHandlesTimeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	err := provider.Check(ctx, client, accessor)
+	err := provider.Check(ctx, client, accessor, cfg)
 	assert.NoError(t, err)
 
 	accessor.ReadFromReport(func(s *status.ClusterStatus) {

@@ -30,7 +30,7 @@ func TestChecker_CheckOK(t *testing.T) {
 
 	accessor := makeReport()
 
-	err = provider.Check(context.Background(), nil, accessor)
+	err = provider.Check(context.Background(), nil, accessor, cfg)
 	assert.NoError(t, err)
 
 	accessor.ReadFromReport(func(s *status.ClusterStatus) {
@@ -67,7 +67,7 @@ func TestChecker_NotSet(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			provider := promcfg.NewProvider(context.Background(), tc.cfg)
 			accessor := makeReport()
-			err := provider.Check(context.Background(), nil, accessor)
+			err := provider.Check(context.Background(), nil, accessor, tc.cfg)
 			assert.NoError(t, err)
 
 			accessor.ReadFromReport(func(s *status.ClusterStatus) {

@@ -28,8 +28,8 @@ func NewProvider(ctx context.Context, cfg *config.Settings) diagnostic.Provider 
 	}
 }
 
-func (c *checker) Check(_ context.Context, _ *net.Client, accessor status.Accessor) error {
-	if len(c.cfg.Prometheus.Configurations) == 0 {
+func (c *checker) Check(_ context.Context, _ *net.Client, accessor status.Accessor, cfg *config.Settings) error {
+	if len(cfg.Prometheus.Configurations) == 0 {
 		accessor.AddCheck(&status.StatusCheck{
 			Name:  DiagnosticScrapeConfig,
 			Error: "no prometheus scrape config locations specified in configuration file",
@@ -37,7 +37,7 @@ func (c *checker) Check(_ context.Context, _ *net.Client, accessor status.Access
 		return nil
 	}
 
-	for _, location := range c.cfg.Prometheus.Configurations {
+	for _, location := range cfg.Prometheus.Configurations {
 		if _, err := os.Stat(location); os.IsNotExist(err) {
 			accessor.AddCheck(
 				&status.StatusCheck{Name: DiagnosticScrapeConfig, Error: fmt.Sprintf("find scrape configuration failed: %s", location)})

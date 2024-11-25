@@ -40,13 +40,13 @@ func TestChecker_CheckOK(t *testing.T) {
 
 	for _, tc := range tcases {
 		t.Run(tc.name, func(t *testing.T) {
-			provider := stage.NewProvider(context.Background(), &config.Settings{}, tc.stageID)
+			cfg := &config.Settings{}
+			provider := stage.NewProvider(context.Background(), cfg, tc.stageID)
 			accessor := makeReport()
-			assert.NoError(t, provider.Check(context.Background(), nil, accessor))
+			assert.NoError(t, provider.Check(context.Background(), nil, accessor, cfg))
 			accessor.ReadFromReport(func(s *status.ClusterStatus) {
 				assert.Equal(t, tc.stageID, s.State)
 			})
 		})
 	}
-
 }

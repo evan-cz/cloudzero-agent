@@ -35,7 +35,7 @@ func NewProvider(ctx context.Context, cfg *config.Settings) diagnostic.Provider 
 	}
 }
 
-func (c *checker) Check(_ context.Context, client *http.Client, accessor status.Accessor) error {
+func (c *checker) Check(_ context.Context, client *http.Client, accessor status.Accessor, cfg *config.Settings) error {
 	version, err := c.getK8sVersion(client)
 	if err != nil {
 		accessor.AddCheck(

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright (c) 2016-2024, CloudZero, Inc. or its affiliates. All Rights Reserved.
+// SPDX-LicenseCopyrightText: Copyright (c) 2016-2024, CloudZero, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 package cz_test
 
@@ -39,7 +39,7 @@ func TestChecker_CheckOK(t *testing.T) {
 
 	accessor := makeReport()
 
-	err := provider.Check(context.Background(), client, accessor)
+	err := provider.Check(context.Background(), client, accessor, cfg)
 	assert.NoError(t, err)
 
 	accessor.ReadFromReport(func(s *status.ClusterStatus) {
@@ -64,7 +64,7 @@ func TestChecker_CheckBadKey(t *testing.T) {
 	client := mock.HTTPClient()
 
 	accessor := makeReport()
-	err := provider.Check(context.Background(), client, accessor)
+	err := provider.Check(context.Background(), client, accessor, cfg)
 	assert.NoError(t, err)
 
 	accessor.ReadFromReport(func(s *status.ClusterStatus) {

@@ -6,19 +6,19 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/cloudzero/cloudzero-agent-validator/pkg/config"
 	"github.com/cloudzero/cloudzero-agent-validator/pkg/diagnostic/catalog"
 	"github.com/cloudzero/cloudzero-agent-validator/pkg/status"
+	"github.com/cloudzero/cloudzero-agent-validator/pkg/config"
 	"github.com/stretchr/testify/assert"
 )
 
 type mockProvider struct {
-	Test func(ctx context.Context, client *http.Client, recorder status.Accessor) error
+	Test func(ctx context.Context, client *http.Client, recorder status.Accessor, cfg *config.Settings) error
 }
 
-func (m *mockProvider) Check(ctx context.Context, client *http.Client, recorder status.Accessor) error {
+func (m *mockProvider) Check(ctx context.Context, client *http.Client, recorder status.Accessor, cfg *config.Settings) error {
 	if m.Test != nil {
-		return m.Test(ctx, client, recorder)
+		return m.Test(ctx, client, recorder, cfg)
 	}
 	return nil
 }
@@ -46,7 +46,7 @@ func TestRunner_Run_Error(t *testing.T) {
 	engine.AddPostStep(mockProvider1)
 
 	// Simulate an error in one of the providers
-	mockProvider2.Test = func(ctx context.Context, client *http.Client, recorder status.Accessor) error {
+	mockProvider2.Test = func(ctx context.Context, client *http.Client, recorder status.Accessor, cfg *config.Settings) error {
 		return errors.New("provider error")
 	}
 
