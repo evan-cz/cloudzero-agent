@@ -30,31 +30,36 @@ var (
 type checker struct {
 	cfg       *config.Settings
 	logger    *logrus.Entry
-	clientset *kubernetes.Clientset
+	clientset kubernetes.Interface
 }
 
-func NewProvider(ctx context.Context, cfg *config.Settings) diagnostic.Provider {
-	// Use the in-cluster config if running inside a cluster, otherwise use the default kubeconfig
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		kubeconfig := clientcmd.RecommendedHomeFile
-		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+func NewProvider(ctx context.Context, cfg *config.Settings, clientset ...kubernetes.Interface) diagnostic.Provider {
+	var cs kubernetes.Interface
+	if len(clientset) > 0 {
+		cs = clientset[0]
+	} else {
+		// Use the in-cluster config if running inside a cluster, otherwise use the default kubeconfig
+		config, err := rest.InClusterConfig()
+		if err != nil {
+			kubeconfig := clientcmd.RecommendedHomeFile
+			config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+			if err != nil {
+				panic(err.Error())
+			}
+		}
+
+		// Create the clientset
+		cs, err = kubernetes.NewForConfig(config)
 		if err != nil {
 			panic(err.Error())
 		}
-	}
-
-	// Create the clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		panic(err.Error())
 	}
 
 	return &checker{
 		cfg: cfg,
 		logger: logging.NewLogger().
 			WithContext(ctx).WithField(logging.OpField, "ksm"),
-		clientset: clientset,
+		clientset: cs,
 	}
 }
 
