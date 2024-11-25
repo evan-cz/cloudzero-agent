@@ -40,7 +40,7 @@ func TestChecker_CheckOK(t *testing.T) {
 	assert.NoError(t, err)
 
 	accessor.ReadFromReport(func(s *status.ClusterStatus) {
-		assert.Len(t, s.Checks, 2)
+		assert.Len(t, s.Checks, 1)
 		for _, c := range s.Checks {
 			assert.True(t, c.Passing)
 		}
@@ -72,7 +72,7 @@ func TestChecker_CheckRetry(t *testing.T) {
 	assert.NoError(t, err)
 
 	accessor.ReadFromReport(func(s *status.ClusterStatus) {
-		assert.Len(t, s.Checks, 2)
+		assert.Len(t, s.Checks, 1)
 		for _, c := range s.Checks {
 			assert.True(t, c.Passing)
 		}
@@ -128,7 +128,7 @@ func TestChecker_CheckMetricsValidation(t *testing.T) {
 	assert.NoError(t, err)
 
 	accessor.ReadFromReport(func(s *status.ClusterStatus) {
-		assert.Len(t, s.Checks, 2)
+		assert.Len(t, s.Checks, 1)
 		for _, c := range s.Checks {
 			assert.True(t, c.Passing)
 		}
@@ -181,7 +181,7 @@ func TestChecker_CheckHandlesTimeout(t *testing.T) {
 	assert.NoError(t, err)
 
 	accessor.ReadFromReport(func(s *status.ClusterStatus) {
-		assert.Len(t, s.Checks, 1)
+		assert.Len(t, s.Checks, 2)
 		for _, c := range s.Checks {
 			assert.False(t, c.Passing)
 		}

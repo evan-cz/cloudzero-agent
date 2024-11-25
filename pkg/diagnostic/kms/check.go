@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudzero-cloudzero-agent-validator/pkg/diagnostic"
-	"github.com/cloudzero-cloudzero-agent-validator/pkg/logging"
-	"github.com/cloudzero-cloudzero-agent-validator/pkg/status"
 	"github.com/cloudzero/cloudzero-agent-validator/pkg/config"
+	"github.com/cloudzero/cloudzero-agent-validator/pkg/diagnostic"
+	"github.com/cloudzero/cloudzero-agent-validator/pkg/logging"
+	"github.com/cloudzero/cloudzero-agent-validator/pkg/status"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -130,15 +130,19 @@ func (c *checker) Check(ctx context.Context, client *net.Client, accessor status
 
 			metrics := string(body)
 			requiredMetrics := []string{"kube_pod_info", "kube_node_info"} // Add the required metrics here
+			allMetricsFound := true
 			for _, metric := range requiredMetrics {
 				if !strings.Contains(metrics, metric) {
 					c.logger.Errorf("Required metric %s not found", metric)
 					accessor.AddCheck(&status.StatusCheck{Name: DiagnosticKMS, Passing: false, Error: fmt.Sprintf("Required metric %s not found", metric)})
-					return nil
+					allMetricsFound = false
 				}
 			}
 
-			accessor.AddCheck(&status.StatusCheck{Name: DiagnosticKMS, Passing: true})
+			if allMetricsFound {
+				c.logger.Infof("All required metrics found: %v", requiredMetrics)
+				accessor.AddCheck(&status.StatusCheck{Name: DiagnosticKMS, Passing: true})
+			}
 			return nil
 		}
 
