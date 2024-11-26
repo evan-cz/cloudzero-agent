@@ -25,6 +25,9 @@ var (
 	// Exported so that it can be overridden in tests
 	MaxRetry      = 12
 	RetryInterval = 10 * time.Second
+
+	// Wrapper for rest.InClusterConfig to allow mocking in tests
+	InClusterConfig = rest.InClusterConfig
 )
 
 type checker struct {
@@ -38,7 +41,7 @@ func NewProvider(ctx context.Context, cfg *config.Settings) diagnostic.Provider 
 	var err error
 
 	// Use the in-cluster config if running inside a cluster, otherwise use the default kubeconfig
-	config, err := rest.InClusterConfig()
+	config, err := InClusterConfig()
 	if err != nil {
 		kubeconfig := clientcmd.RecommendedHomeFile
 		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)

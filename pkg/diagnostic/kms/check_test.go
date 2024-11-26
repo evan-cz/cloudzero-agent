@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/rest"
 	k8stesting "k8s.io/client-go/testing"
 
 	"github.com/cloudzero/cloudzero-agent-validator/pkg/config"
@@ -20,7 +21,7 @@ import (
 )
 
 const (
-	mockURL = "http://example.com"
+	mockURL = "http://example.com" // Define the mock URL
 )
 
 func makeReport() status.Accessor {
@@ -46,6 +47,49 @@ func createMockEndpoints(clientset *fake.Clientset) {
 				},
 			},
 		}, nil
+	})
+}
+
+// mockInClusterConfig mocks the in-cluster configuration
+func mockInClusterConfig() func() {
+	original := kms.InClusterConfig
+	kms.InClusterConfig = func() (*rest.Config, error) {
+		return &rest.Config{
+			Host: "https://mock-kubernetes",
+		}, nil
+	}
+	return func() { kms.InClusterConfig = original }
+}
+
+func TestChecker_CheckOK(t *testing.T) {
+	cfg := &config.Settings{
+		Prometheus: config.Prometheus{
+			KubeStateMetricsServiceEndpoint: mockURL,
+		},
+	}
+	clientset := fake.NewSimpleClientset()
+	createMockEndpoints(clientset)
+
+	// Mock the in-cluster configuration
+	restore := mockInClusterConfig()
+	defer restore()
+
+	provider := kms.NewProvider(context.Background(), cfg)
+
+	mock := test.NewHTTPMock()
+	mock.Expect(http.MethodGet, "kube_pod_info\nkube_node_info\n", http.StatusOK, nil)
+	client := mock.HTTPClient()
+
+	accessor := makeReport()
+
+	err := provider.Check(context.Background(), client, accessor)
+	assert.NoError(t, err)
+
+	accessor.ReadFromReport(func(s *status.ClusterStatus) {
+		assert.Len(t, s.Checks, 1)
+		for _, c := range s.Checks {
+			assert.True(t, c.Passing)
+		}
 	})
 }
 
