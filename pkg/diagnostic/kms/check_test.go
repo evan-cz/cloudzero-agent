@@ -7,6 +7,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
+	k8stesting "k8s.io/client-go/testing"
 
 	"github.com/cloudzero/cloudzero-agent-validator/pkg/config"
 	"github.com/cloudzero/cloudzero-agent-validator/pkg/diagnostic/kms"
@@ -22,12 +27,36 @@ func makeReport() status.Accessor {
 	return status.NewAccessor(&status.ClusterStatus{})
 }
 
+// createMockEndpoints creates mock endpoints and adds them to the fake clientset
+func createMockEndpoints(clientset *fake.Clientset) {
+	clientset.PrependReactor("get", "endpoints", func(action k8stesting.Action) (handled bool, ret runtime.Object, err error) {
+		return true, &corev1.Endpoints{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "cz-prom-agent-kube-state-metrics",
+				Namespace: "prom-agent",
+			},
+			Subsets: []corev1.EndpointSubset{
+				{
+					Addresses: []corev1.EndpointAddress{
+						{IP: "192.168.1.1"},
+					},
+					Ports: []corev1.EndpointPort{
+						{Name: "http", Port: 8080},
+					},
+				},
+			},
+		}, nil
+	})
+}
+
 func TestChecker_CheckOK(t *testing.T) {
 	cfg := &config.Settings{
 		Prometheus: config.Prometheus{
 			KubeStateMetricsServiceEndpoint: mockURL,
 		},
 	}
+	clientset := fake.NewSimpleClientset()
+	createMockEndpoints(clientset)
 	provider := kms.NewProvider(context.Background(), cfg)
 
 	mock := test.NewHTTPMock()
@@ -53,9 +82,11 @@ func TestChecker_CheckRetry(t *testing.T) {
 			KubeStateMetricsServiceEndpoint: mockURL,
 		},
 	}
+	clientset := fake.NewSimpleClientset()
+	createMockEndpoints(clientset)
 	provider := kms.NewProvider(context.Background(), cfg)
 
-	// Update the test sleep interval to accellerate the test
+	// Update the test sleep interval to accelerate the test
 	kms.RetryInterval = 10 * time.Millisecond
 	mock := test.NewHTTPMock()
 	for i := 0; i < kms.MaxRetry; i++ {
@@ -83,9 +114,11 @@ func TestChecker_CheckRetryFailure(t *testing.T) {
 			KubeStateMetricsServiceEndpoint: mockURL,
 		},
 	}
+	clientset := fake.NewSimpleClientset()
+	createMockEndpoints(clientset)
 	provider := kms.NewProvider(context.Background(), cfg)
 
-	// Update the test sleep interval to accellerate the test
+	// Update the test sleep interval to accelerate the test
 	kms.RetryInterval = 10 * time.Millisecond
 	kms.MaxRetry = 0
 
