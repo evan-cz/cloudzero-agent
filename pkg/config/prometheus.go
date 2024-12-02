@@ -10,6 +10,7 @@ import (
 type Prometheus struct {
 	Executable                      string   `yaml:"executable" default:"/bin/prometheus" env:"PROMETHEUS_EXECUTABLE" env-description:"Prometheus Executable Path"`
 	KubeStateMetricsServiceEndpoint string   `yaml:"kube_state_metrics_service_endpoint" env:"KMS_EP_URL" required:"true" env-description:"Kube State Metrics Service Endpoint"`
+	Namespace                       string   `yaml:"namespace" env:"PROMETHEUS_NAMESPACE" required:"true" env-description:"Namespace for Prometheus"`
 	Configurations                  []string `yaml:"configurations"`
 }
 

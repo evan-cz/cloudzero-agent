@@ -18,6 +18,7 @@ cloudzero:
 
 prometheus:
   kube_state_metrics_service_endpoint: http://kube-state-metrics:8080
+  namespace: prom-agent
   configurations: 
     - prometheus.yml
 
