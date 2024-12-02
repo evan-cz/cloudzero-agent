@@ -66,7 +66,7 @@ var NewProvider = func(ctx context.Context, cfg *config.Settings, clientset ...k
 func (c *checker) Check(ctx context.Context, client *http.Client, accessor status.Accessor) error {
 	var (
 		retriesRemaining = MaxRetry
-		namespace        = "prom-agent"
+		namespace        = c.cfg.Prometheus.Namespace
 		serviceName      = c.cfg.Prometheus.KubeStateMetricsServiceEndpoint
 		endpointURL      string
 	)
