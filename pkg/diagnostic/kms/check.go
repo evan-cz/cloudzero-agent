@@ -67,7 +67,7 @@ func (c *checker) Check(ctx context.Context, client *http.Client, accessor statu
 	var (
 		retriesRemaining = MaxRetry
 		namespace        = "prom-agent"
-		serviceName      = "cz-prom-agent-kube-state-metrics"
+		serviceName      = c.cfg.Prometheus.KubeStateMetricsServiceEndpoint
 		endpointURL      string
 	)
 
