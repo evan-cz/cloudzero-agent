@@ -9,12 +9,13 @@ import (
 )
 
 const (
-	DiagnosticAPIKey            string = "api_key_valid" //nolint:gosec // false positive for G101: Potential hardcoded credentials
-	DiagnosticK8sVersion        string = "k8s_version"
-	DiagnosticEgressAccess      string = "egress_reachable"
-	DiagnosticKMS               string = "kube_state_metrics_reachable"
-	DiagnosticPrometheusVersion string = "prometheus_version"
-	DiagnosticScrapeConfig      string = "scrape_cfg"
+	DiagnosticAPIKey              string = "api_key_valid" //nolint:gosec // false positive for G101: Potential hardcoded credentials
+	DiagnosticK8sVersion          string = "k8s_version"
+	DiagnosticEgressAccess        string = "egress_reachable"
+	DiagnosticWebhookServerAccess string = "webhook_server_reachable"
+	DiagnosticKMS                 string = "kube_state_metrics_reachable"
+	DiagnosticPrometheusVersion   string = "prometheus_version"
+	DiagnosticScrapeConfig        string = "scrape_cfg"
 )
 
 const (

@@ -6,9 +6,10 @@ package config
 import "github.com/pkg/errors"
 
 type Deployment struct {
-	AccountID   string `yaml:"account_id" env:"ACCOUNT_ID" required:"true" env-description:"AWS Account ID"`
-	ClusterName string `yaml:"cluster_name" env:"CLUSTER_NAME" required:"true" env-description:"Cluster Name"`
-	Region      string `yaml:"region" env:"REGION" required:"true" env-description:"AWS Region"`
+	AccountID            string `yaml:"account_id" env:"ACCOUNT_ID" required:"true" env-description:"AWS Account ID"`
+	ClusterName          string `yaml:"cluster_name" env:"CLUSTER_NAME" required:"true" env-description:"Cluster Name"`
+	Region               string `yaml:"region" env:"REGION" required:"true" env-description:"AWS Region"`
+	WebhookServerAddress string `yaml:"webhook_server_address" env:"WEBHOOK_SERVER_ADDRESS" required:"true" env-description:"Webhook Server Address"`
 }
 
 func (s *Deployment) Validate() error {
