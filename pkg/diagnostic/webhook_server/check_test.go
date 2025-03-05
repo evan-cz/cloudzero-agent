@@ -95,7 +95,6 @@ func TestCheck(t *testing.T) {
 				assert.Equal(t, tt.expectedError, s.Checks[0].Error)
 				assert.Equal(t, tt.wantPass, s.Checks[0].Passing)
 			})
-			// assert.Equal(t, tt.wantPass, checks[0].Passing)
 		})
 	}
 }
