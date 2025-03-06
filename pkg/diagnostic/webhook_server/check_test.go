@@ -74,7 +74,10 @@ func TestCheck(t *testing.T) {
 
 			cfg := &config.Settings{
 				Deployment: config.Deployment{
-					WebhookServerAddress: server.URL,
+					WebhookServer: config.WebhookServer{
+						ServiceAddress: server.URL,
+						CACert:         server.TLS.Certificates[0].Certificate[0],
+					},
 				},
 			}
 

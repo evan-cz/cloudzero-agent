@@ -7,6 +7,8 @@ package webhook_server
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
+	"errors"
 	net "net/http"
 
 	"github.com/sirupsen/logrus"
@@ -35,11 +37,19 @@ func NewProvider(ctx context.Context, cfg *config.Settings) diagnostic.Provider 
 
 func (c *checker) Check(ctx context.Context, client *net.Client, accessor status.Accessor) error {
 	// Ensure we can reach the webhook server over the k8s network
-	url := c.cfg.Deployment.WebhookServerAddress + "/healthz"
+	url := c.cfg.Deployment.WebhookServer.ServiceAddress + "/healthz"
+
+	// Load CA cert
+	caCertPool := x509.NewCertPool()
+	if ok := caCertPool.AppendCertsFromPEM([]byte(c.cfg.Deployment.WebhookServer.CACert)); !ok {
+		err := errors.New("failed to append CA cert to pool")
+		accessor.AddCheck(&status.StatusCheck{Name: DiagnosticWebhookServerAccess, Passing: false, Error: err.Error()})
+		return nil
+	}
 
 	client.Transport = &net.Transport{
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
+			RootCAs: caCertPool,
 		},
 	}
 
