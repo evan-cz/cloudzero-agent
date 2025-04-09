@@ -31,18 +31,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: alexellis/setup-arkade@v2
+
       - uses: alexellis/arkade-get@master
         with:
           kubectl: latest
           helm: latest
           k3d: latest
-      #- name: Create k3s ${{ matrix.k8s_version }} cluster
-      #  uses: nolar/setup-k3d-k3s@v1.0.9
-      #  id: k3s
-      #  with:
-      #    k3d-name: k3d-${{ matrix.k8s_version }}
-      #    version: ${{ matrix.k8s_version }}
-      #    github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Setup k3s ${{ matrix.k8s_version }}
         shell: bash
         run: |
@@ -50,6 +45,7 @@ jobs:
           sudo ufw disable
           echo "Setup k3s ${{ matrix.k8s_version }}"
           curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="${{ matrix.k8s_version }}" INSTALL_K3S_CHANNEL="stable" sh -s -
+
       - name: Prepare a kubeconfig in ~/.kube/config
         shell: bash
         run: |
@@ -58,6 +54,10 @@ jobs:
           sudo cat /etc/rancher/k3s/k3s.yaml > "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
           echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
+
+      - name: Wait for cluster to be ready
+        shell: bash
+        run: |
           sleep 60s
           echo "Waiting for nodes to be ready..."
           kubectl wait --for=condition=Ready nodes --all --timeout=4m
@@ -89,6 +89,7 @@ jobs:
             helm-install
           sleep 60s
           kubectl get pods -n cz-agent
+          timeout 240s kubectl events -n cz-agent -w
           kubectl wait pod \
             --timeout 240s \
             --all \
