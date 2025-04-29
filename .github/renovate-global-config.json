@@ -1,0 +1,33 @@
+{
+  "baseBranches": ["develop"],
+  "rebaseWhen": "conflicted",
+  "labels": ["dependencies"],
+  "prHourlyLimit": 0,
+  "repositories": [
+    "evan-cz/cloudzero-agent"
+  ],
+  "ignorePaths": [
+    ".github/workflows/*.yml",
+    ".github/workflows/*.yaml",
+    "**/go.mod",
+    "**/Dockerfile",
+    "**/Dockerfile.*",
+    ".tools/package.json"
+  ],
+  "onboarding": false,
+  "requireConfig": "optional",
+  "allowedPostUpgradeCommands": ["^make "],
+  "packageRules": [
+    {
+      "matchPackageNames": ["*"],
+      "postUpgradeTasks": {
+        "commands": [
+          "make install-tools generate format"
+        ],
+        "fileFilters": [
+          "tests/helm/template/*.yaml"
+        ]
+      }
+    }
+  ]
+}
