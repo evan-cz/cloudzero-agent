@@ -1,0 +1,6 @@
+{
+  "repositories": [
+    "evan-cz/cloudzero-agent"
+  ],
+  "allowedPostUpgradeCommands": ["^make "]
+}
