@@ -772,7 +772,7 @@ data:
       prometheusReloader:
         image:
           repository: quay.io/prometheus-operator/prometheus-config-reloader
-          tag: v0.82.0
+          tag: v0.83.0
       webhookServer:
         podDisruptionBudget:
           maxUnavailable: null
@@ -1922,7 +1922,7 @@ spec:
               mountPath: /checks/config/
       containers:
         - name: cloudzero-agent-server-configmap-reload
-          image: "quay.io/prometheus-operator/prometheus-config-reloader:v0.82.0"
+          image: "quay.io/prometheus-operator/prometheus-config-reloader:v0.83.0"
           imagePullPolicy: "IfNotPresent"
           
           args:
