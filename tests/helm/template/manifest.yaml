@@ -750,7 +750,7 @@ data:
       agent:
         image:
           repository: ghcr.io/cloudzero/cloudzero-agent/cloudzero-agent
-          tag: 1.1.2
+          tag: 1.2.4
         podDisruptionBudget:
           maxUnavailable: null
           minAvailable: null
@@ -1870,7 +1870,7 @@ spec:
       serviceAccountName: cz-agent-cloudzero-agent-server
       initContainers:
         - name: env-validator-copy
-          image: "ghcr.io/cloudzero/cloudzero-agent/cloudzero-agent:1.1.2"
+          image: "ghcr.io/cloudzero/cloudzero-agent/cloudzero-agent:1.2.4"
           imagePullPolicy: "IfNotPresent"
           
           env:
@@ -1895,7 +1895,7 @@ spec:
             - name: validator-config-volume
               mountPath: /checks/config/
         - name: env-validator-run
-          image: "ghcr.io/cloudzero/cloudzero-agent/cloudzero-agent:1.1.2"
+          image: "ghcr.io/cloudzero/cloudzero-agent/cloudzero-agent:1.2.4"
           imagePullPolicy: "IfNotPresent"
           
           env:
@@ -2070,7 +2070,7 @@ spec:
       
       containers:
         - name: cz-agent-aggregator-collector
-          image: "ghcr.io/cloudzero/cloudzero-agent/cloudzero-agent:1.1.2"
+          image: "ghcr.io/cloudzero/cloudzero-agent/cloudzero-agent:1.2.4"
           imagePullPolicy: "IfNotPresent"
           
           ports:
@@ -2113,7 +2113,7 @@ spec:
               memory: 64Mi
 
         - name: cz-agent-aggregator-shipper
-          image: "ghcr.io/cloudzero/cloudzero-agent/cloudzero-agent:1.1.2"
+          image: "ghcr.io/cloudzero/cloudzero-agent/cloudzero-agent:1.2.4"
           imagePullPolicy: "IfNotPresent"
           
           ports:
@@ -2246,7 +2246,7 @@ spec:
       
       containers:
         - name: webhook-server
-          image: "ghcr.io/cloudzero/cloudzero-agent/cloudzero-agent:1.1.2"
+          image: "ghcr.io/cloudzero/cloudzero-agent/cloudzero-agent:1.2.4"
           imagePullPolicy: "IfNotPresent"
           
           command:
@@ -2332,7 +2332,7 @@ spec:
       
       containers:
         - name: init-scrape
-          image: "ghcr.io/cloudzero/cloudzero-agent/cloudzero-agent:1.1.2"
+          image: "ghcr.io/cloudzero/cloudzero-agent/cloudzero-agent:1.2.4"
           imagePullPolicy: "IfNotPresent"
           
           command:
@@ -2506,7 +2506,7 @@ spec:
       
       containers:
         - name: run-validator
-          image: "ghcr.io/cloudzero/cloudzero-agent/cloudzero-agent:1.1.2"
+          image: "ghcr.io/cloudzero/cloudzero-agent/cloudzero-agent:1.2.4"
           imagePullPolicy: "IfNotPresent"
           
           env:
