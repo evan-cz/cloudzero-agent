@@ -156,26 +156,19 @@ jobs:
           echo "kubectl-version=$(kubectl version --client | grep Client | cut -d ' ' -f 3)" >> $GITHUB_OUTPUT
           echo "helm-version=$(helm version --short | sed 's/\([^+]*\).*/\1/')" >> $GITHUB_OUTPUT
 
-      # Install TestKube into Cluster
-      - name: Install TestKube
+      # Install KUTTL into Cluster
+      - name: Install KUTTL
         run: |
-          echo "Applying TestKube Helm Chart"
-          .tools/bin/helm repo add kubeshop https://kubeshop.github.io/helm-charts
-          .tools/bin/helm install testkube kubeshop/testkube \
-            --version=v2.1.137 \
-            -n testkube --create-namespace
-          echo "Wait for testkube deployments"
-          kubectl wait deployment \
-            -n testkube \
-            --all \
-            --for condition=Available=True \
-            --timeout=600s
-
-      # Install Testkube CLI
-      - uses: kubeshop/setup-testkube@v1
-        with:
-          namespace: testkube
-          version: 2.1.137
+          echo "Installing KUTTL..."
+          if ! which kubectl-kuttl > /dev/null 2>&1; then
+            echo "Installing KUTTL CLI..."
+            if [ "$(uname)" = "Darwin" ]; then
+              curl -sSL https://github.com/kudobuilder/kuttl/releases/download/v0.15.0/kuttl_0.15.0_macOS_x86_64.tar.gz | tar -xz && sudo mv kubectl-kuttl /usr/local/bin/kuttl
+            else
+              curl -sSL https://github.com/kudobuilder/kuttl/releases/download/v0.15.0/kuttl_0.15.0_linux_x86_64.tar.gz | tar -xz && sudo mv kubectl-kuttl /usr/local/bin/kuttl
+            fi
+          fi
+          echo "KUTTL version: $(kubectl-kuttl version)"
 
       - name: Setup imagePullSecrets
         run: |
@@ -226,13 +219,14 @@ jobs:
             echo "All deployments are ready"
           fi
 
-      - name: Apply and Run TestKube Tests
+      - name: Run KUTTL Tests
         run: |
-          kubectl apply -f ./tests/testkube/tests.yaml
-          testkube run testworkflow agent-basic-test -f
+          echo "Running KUTTL tests..."
+          export KUBECONFIG=$HOME/.kube/config
+          make test-kuttl
 
-      # Many more testkube based tests could be added in here as desired.
-      # Testkube support Postman, K6, simple scripts and much more.
+      # Many more KUTTL based tests could be added in here as desired.
+      # KUTTL supports comprehensive Kubernetes testing with proper resource management.
 
       - name: Collect Logs
         id: logs
@@ -245,12 +239,10 @@ jobs:
           kubectl get all -A &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log || echo "[ERROR] Kubectl get all command exited error." &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
           echo "---Kubectl Events------------------------------------------------------" &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
           kubectl events -A &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log || echo "[ERROR] Kubectl events command exited error." &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
-          echo "---Stern Logs (testkube)------------------------------------------------" &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
-          kubectl stern -n testkube --since=3m --no-follow -t . | sort -k4 &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log || echo "[ERROR] Stern log command exited error." &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
           echo "---Stern Logs (cz-agent)------------------------------------------------" &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
           kubectl stern -n cz-agent --since=3m --no-follow -t . | sort -k4 &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log || echo "[ERROR] Stern log command exited error." &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
-          echo "---Testkube Logs--------------------------------------------------------" &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
-          testkube get testworkflowexecution $(testkube get testworkflowexecution --limit 1 -o yaml | yq e .[0].id) &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log || echo "[ERROR] Testkube log command exited error." &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
+          echo "---KUTTL Test Results------------------------------------------------" &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
+          kubectl-kuttl test --config tests/kuttl/webhook-test/kuttl-test.yaml tests/kuttl/webhook-test/ --report json --artifacts-dir ${{ runner.temp }}/kuttl-reports &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log || echo "[ERROR] KUTTL test command exited error." &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
 
       # It wouldn't be a bad idea to do a security pattern scan of these logs and redact them if a
       # potential secret it detected, since they will be publicly available if uploaded.

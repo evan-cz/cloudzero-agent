@@ -10,20 +10,27 @@ GO          ?= go
 AWK         ?= awk
 CC          ?= $(shell $(GO) env CC)
 CXX         ?= $(shell $(GO) env CXX)
+CHMOD       ?= chmod
 CURL        ?= curl
 DOCKER      ?= docker
+ECHO        ?= echo
 GREP        ?= grep
+KUBECTL     ?= kubectl
+KUTTL       ?= kubectl-kuttl
+MKDIR       ?= mkdir
 NPM         ?= npm
 PROTOC      ?= protoc
 RM          ?= rm
 XARGS       ?= xargs
 
 # Dependencies we install via `make install-tools`
+ACT           ?= $(abspath .tools/bin/act)
 DYFF          ?= $(abspath .tools/bin/dyff)
 GOFUMPT       ?= $(abspath .tools/bin/gofumpt)
 GOJQ          ?= $(abspath .tools/bin/gojq)
 GOLANGCI_LINT ?= $(abspath .tools/bin/golangci-lint)
 HELM          ?= $(abspath .tools/bin/helm)
+KIND          ?= $(abspath .tools/bin/kind)
 KUBECONFORM   ?= $(abspath .tools/bin/kubeconform)
 MOCKGEN       ?= $(abspath .tools/bin/mockgen)
 PRETTIER      ?= $(abspath .tools/node_modules/.bin/prettier)
@@ -31,8 +38,9 @@ STATICCHECK   ?= $(abspath .tools/bin/staticcheck)
 
 # Build configuration
 GO_MODULE      ?= $(shell $(GO) list -m)
-IMAGE_PREFIX   ?= $(subst github.com,ghcr.io,$(GO_MODULE))
-IMAGE_NAME     ?= $(IMAGE_PREFIX)/$(notdir $(GO_MODULE))
+IMAGE_REPO     ?= ghcr.io
+IMAGE_PATH     ?= $(subst github.com/,,$(GO_MODULE))
+IMAGE_NAME     ?= $(IMAGE_REPO)/$(IMAGE_PATH)
 BUILD_TIME     ?= $(shell date -u '+%Y-%m-%d_%I:%M:%S%p')
 REVISION       ?= $(shell git rev-parse HEAD)
 TAG            ?= dev-$(REVISION)
@@ -52,7 +60,7 @@ CLOUD_HELM_EXTRA_ARGS ?=
 ERROR_COLOR ?= \033[1;31m
 INFO_COLOR  ?= \033[1;32m
 WARN_COLOR  ?= \033[1;33m
-NO_COLOR    ?= \033[0m	
+NO_COLOR    ?= \033[0m
 
 # Docker is the default container tool (and buildx buildkit)
 CONTAINER_TOOL ?= $(shell command -v $(DOCKER) 2>/dev/null)
@@ -91,12 +99,6 @@ maintainer-clean: clean
 
 # ----------- DEVELOPMENT TOOL INSTALLATION ------------
 
-ifeq ($(shell uname -s),Darwin)
-export SHELL:=env PATH="$(PWD)/.tools/bin:$(PWD)/.tools/node_modules/.bin:$(PATH)" $(SHELL)
-else
-export PATH := $(PWD)/.tools/bin:$(PWD)/.tools/node_modules/.bin:$(PATH)
-endif
-
 MAINTAINER_CLEANFILES += \
 	.tools/bin \
 	.tools/node_modules/.bin \
@@ -131,12 +133,6 @@ install-tools-helm-unittest:
 		echo "$(INFO_COLOR)Installing helm unittest plugin...$(NO_COLOR)"; \
 		$(HELM) plugin install https://github.com/helm-unittest/helm-unittest; \
 	fi
-
-# Generate the secrets file used by the `act` tool for local GitHub Action development.
-secrets-act:
-	@if [[ "$(CLOUDZERO_DEV_API_KEY)" == "" ]] || [[ "$(GITHUB_TOKEN)" == "" ]]; then echo "CLOUDZERO_DEV_API_KEY and GITHUB_TOKEN are required to generate the .github/workflows/.secret file, but at least one of them is not set. Consider adding to local-config.mk."; exit 1; fi
-	@echo "CLOUDZERO_DEV_API_KEY=$(CLOUDZERO_DEV_API_KEY)" > $(GIT_ROOT)/.github/workflows/.secrets
-	@echo "GITHUB_TOKEN=$(GITHUB_TOKEN)" >> $(GIT_ROOT)/.github/workflows/.secrets
 
 # ----------- STANDARDS & PRACTICES ------------
 
@@ -289,6 +285,120 @@ test-smoke: ## Run the smoke tests
 	CSP_REGION=$(CSP_REGION) \
 	CLUSTER_NAME=$(CLUSTER_NAME) \
 	$(GO) test -run Smoke -v -timeout 10m ./tests/smoke/...
+
+# ----------- LOCAL TESTING INFRASTRUCTURE ------------
+
+# Generic testing configuration
+TEST_K8S_VERSION          ?= v1.32.3
+TEST_PLATFORM             ?= linux/amd64
+TEST_NAMESPACE            ?= cz-agent
+TEST_RELEASE_NAME         ?= test
+
+# Pattern rule for cluster kubeconfig files
+tests/kuttl/clusters/%/kubeconfig: ## Create kubeconfig for cluster
+	$(ECHO) "Creating cluster: $*"
+	$(MKDIR) -p $(dir $@)
+	$(KIND) create cluster --name $* --image kindest/node:$(TEST_K8S_VERSION)
+	$(KIND) get kubeconfig --name $* > $@
+	$(CHMOD) 600 $@
+	$(KUBECTL) --kubeconfig=$@ wait --for=condition=Ready nodes --all --timeout=4m
+	$(KUBECTL) --kubeconfig=$@ wait --for=condition=Available deployment/coredns -n kube-system --timeout=4m
+
+# Pattern rule for cluster down targets
+.PHONY: tests/kuttl/clusters/%-down
+tests/kuttl/clusters/%-down: ## Delete cluster and remove kubeconfig
+	@if [ -f tests/kuttl/clusters/$*/kubeconfig ]; then \
+		$(KUBECTL) --kubeconfig=tests/kuttl/clusters/$*/kubeconfig delete namespace $(TEST_NAMESPACE) --ignore-not-found=true; \
+	fi
+	$(KIND) delete cluster --name $* || true
+	$(RM) -f tests/kuttl/clusters/$*/kubeconfig
+
+# Run the actual KUTTL tests for chart complete
+.PHONY: test-chart-complete
+test-chart-complete: tests/kuttl/clusters/complete/kubeconfig helm/charts/.stamp
+test-chart-complete: ## Run KUTTL tests for chart complete
+	# Verify the required image exists before starting the test
+	@$(ECHO) "🔍 Verifying image $(IMAGE_NAME):$(TAG) exists..."
+	@if ! $(DOCKER) image inspect $(IMAGE_NAME):$(TAG) >/dev/null 2>&1; then \
+		$(ECHO) "❌ Error: Image $(IMAGE_NAME):$(TAG) not found locally"; \
+		$(ECHO) "💡 To build the image, run: make package-debug"; \
+		$(ECHO) "💡 To use an existing image, update TAG in the Makefile or set it manually"; \
+		exit 1; \
+	fi
+	@$(ECHO) "✅ Image $(IMAGE_NAME):$(TAG) found locally"
+	@$(ECHO) ""
+
+	$(RM) -f kubeconfig
+
+	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(HELM) --namespace $(TEST_NAMESPACE) uninstall complete || true
+	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(HELM) --namespace $(TEST_NAMESPACE) install complete ./helm \
+		--create-namespace \
+		--namespace $(TEST_NAMESPACE) \
+		--values tests/kuttl/clusters/complete/overrides.yaml \
+		--set components.agent.image.tag=$(TAG)
+
+	# Wait for deployments to be ready
+	$(KUBECTL) --kubeconfig=tests/kuttl/clusters/complete/kubeconfig wait deployment -n $(TEST_NAMESPACE) --timeout=300s \
+		--for condition=Available=True \
+		complete-aggregator \
+		complete-cloudzero-agent-webhook-server \
+		complete-cloudzero-state-metrics \
+		complete-cloudzero-agent-server
+
+	# Wait for init-cert job to complete
+	$(KUBECTL) --kubeconfig=tests/kuttl/clusters/complete/kubeconfig wait job -n $(TEST_NAMESPACE) --timeout=300s \
+		--for condition=Complete=True \
+		-l app.kubernetes.io/component=webhook-server
+
+	# Wait for helmless job to complete
+	$(KUBECTL) --kubeconfig=tests/kuttl/clusters/complete/kubeconfig wait job -n $(TEST_NAMESPACE) --timeout=300s \
+		--for condition=Complete=True \
+		-l app.kubernetes.io/component=helmless
+
+	# Note: We don't wait for all pods since job pods become "Completed" and are never "Ready" again
+
+	# Note: Services are ready immediately when created with ClusterIP
+
+	# Run KUTTL tests
+	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(KUTTL) test --config tests/kuttl/clusters/complete/webhook-test/kuttl-test.yaml -v 1 tests/kuttl/clusters/complete/webhook-test/
+	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(KUTTL) test --config tests/kuttl/clusters/complete/webhook-comprehensive-test/kuttl-test.yaml -v 1 tests/kuttl/clusters/complete/webhook-comprehensive-test/
+	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(KUTTL) test --config tests/kuttl/clusters/complete/collector-test/kuttl-test.yaml -v 1 tests/kuttl/clusters/complete/collector-test/
+	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(KUTTL) test --config tests/kuttl/clusters/complete/collector-comprehensive-test/kuttl-test.yaml -v 1 tests/kuttl/clusters/complete/collector-comprehensive-test/
+
+	# KUTTL creates kubeconfig files in the current directory. Which we don't want.
+	$(RM) -f kubeconfig
+
+	# Uninstall CloudZero Agent
+	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(HELM) --namespace $(TEST_NAMESPACE) uninstall complete || true
+
+# ----------- CI TESTING ------------
+
+# Generate the secrets file used by the `act` tool for local GitHub Action development.
+.github/workflows/.secrets:
+	@if [[ "$(CLOUDZERO_DEV_API_KEY)" == "" ]] || [[ "$(GITHUB_TOKEN)" == "" ]]; then echo "CLOUDZERO_DEV_API_KEY and GITHUB_TOKEN are required to generate the .github/workflows/.secrets file, but at least one of them is not set. Consider adding to local-config.mk."; exit 1; fi
+	@echo "CLOUDZERO_DEV_API_KEY=$(CLOUDZERO_DEV_API_KEY)" > $@
+	@echo "GITHUB_TOKEN=$(GITHUB_TOKEN)" >> $@
+
+# Use ACT to run the chart-complete.yaml workflow
+.PHONY: test-ci-chart-complete
+test-ci-chart-complete: .github/workflows/.secrets ## Use ACT to run chart-complete.yaml workflow
+	$(ECHO) "Running chart-complete workflow with ACT..."
+	$(ACT) workflow_dispatch -W .github/workflows/chart-complete.yaml \
+		--artifact-server-path /tmp/artifacts \
+		--env-file .github/workflows/.secrets \
+		--platform ubuntu-latest=node:18 \
+		--container-architecture linux/amd64 \
+		--input image-repo=$(IMAGE_REPO) \
+		--input image-path=$(IMAGE_PATH) \
+		--input image-tag=$(TAG) \
+		--pull=false \
+		$(NULL)
+
+# Main CI test target that runs all CI test suites
+.PHONY: test-ci
+test-ci: test-ci-chart-complete
+test-ci: ## Run all CI test suites
+	$(ECHO) "✅ All CI test suites completed successfully"
 
 # ----------- DOCKER IMAGE ------------
 
