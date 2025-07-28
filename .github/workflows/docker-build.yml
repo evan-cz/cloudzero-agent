@@ -29,7 +29,7 @@ concurrency:
 env:
   REGISTRY_PROD_ADDR: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/cloudzero-agent
-  UNTESTED_IMAGE_NAME: "Cloudzero/untested-cloudzero/untested-cloudzero-agent"
+  UNTESTED_IMAGE_NAME: "${{ github.repository_owner }}/untested-${{ github.repository_owner }}/untested-cloudzero-agent"
 
 jobs:
   docker-build:
