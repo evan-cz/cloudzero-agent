@@ -177,5 +177,5 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          sudo systemctl stop k3s
-          /usr/local/bin/k3s-uninstall.sh || true
+          echo "Cleaning up Kind cluster..."
+          kind delete cluster --name complete || true
