@@ -392,11 +392,26 @@ test-ci-chart-complete: .github/workflows/.secrets ## Use ACT to run chart-compl
 		--input image-path=$(IMAGE_PATH) \
 		--input image-tag=$(TAG) \
 		--pull=false \
+		--list \
+		$(NULL)
+
+# Use ACT to run the docker-build.yml workflow
+.PHONY: test-ci-docker-build
+test-ci-docker-build: .github/workflows/.secrets ## Use ACT to run docker-build.yml workflow
+	$(ECHO) "Running docker-build workflow with ACT..."
+	$(ECHO) "Note: docker-build.yml doesn't have workflow_dispatch trigger, testing syntax only..."
+	$(ACT) push -W .github/workflows/docker-build.yml \
+		--artifact-server-path /tmp/artifacts \
+		--env-file .github/workflows/.secrets \
+		--platform ubuntu-latest=node:18 \
+		--container-architecture linux/amd64 \
+		--pull=false \
+		--list \
 		$(NULL)
 
 # Main CI test target that runs all CI test suites
 .PHONY: test-ci
-test-ci: test-ci-chart-complete
+test-ci: test-ci-chart-complete test-ci-docker-build
 test-ci: ## Run all CI test suites
 	$(ECHO) "✅ All CI test suites completed successfully"
 

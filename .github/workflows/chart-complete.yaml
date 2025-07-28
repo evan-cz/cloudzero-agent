@@ -29,9 +29,9 @@ on:
         default: "latest"
         type: "string"
     outputs:
-      chart-complete-status:
+      version-test-status:
         description: "The completion status of the chart complete job"
-        value: ${{ jobs.chart-complete.outputs.chart-complete-status }}
+        value: ${{ jobs.chart-complete.outputs.version-test-status }}
 
 concurrency:
   # This concurrency group ensures that only one job in the group runs at a time.
@@ -47,7 +47,7 @@ jobs:
       contents: read
       packages: read
     outputs:
-      chart-complete-status: ${{ job.status }}
+      version-test-status: ${{ job.status }}
     strategy:
       fail-fast: false
       matrix:
