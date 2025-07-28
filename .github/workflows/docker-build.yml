@@ -230,13 +230,21 @@ jobs:
         continue-on-error: true
         run: |
           ls -lFa
-          docker buildx imagetools create \
-            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            --annotation='index:org.opencontainers.image.description=${{ github.event.repository.description }}' \
-            --annotation='index:org.opencontainers.image.created=${{ steps.timestamp.outputs.timestamp }}' \
-            --annotation='index:org.opencontainers.image.url=${{ github.event.repository.url }}' \
-            --annotation='index:org.opencontainers.image.source=${{ github.event.repository.url }}' \
-            $(printf '${{ env.REGISTRY_PROD_ADDR }}/${{ env.UNTESTED_IMAGE_NAME }}@sha256:%s ' *)
+          # Check if we have multiple digest files (multi-platform) or just one (single-platform)
+          DIGEST_COUNT=$(ls -1 *.sha256 2>/dev/null | wc -l || echo 0)
+          if [ "$DIGEST_COUNT" -gt 1 ]; then
+            echo "Creating multi-platform manifest list..."
+            docker buildx imagetools create \
+              $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+              --annotation='index:org.opencontainers.image.description=${{ github.event.repository.description }}' \
+              --annotation='index:org.opencontainers.image.created=${{ steps.timestamp.outputs.timestamp }}' \
+              --annotation='index:org.opencontainers.image.url=${{ github.event.repository.url }}' \
+              --annotation='index:org.opencontainers.image.source=${{ github.event.repository.url }}' \
+              $(printf '${{ env.REGISTRY_PROD_ADDR }}/${{ env.UNTESTED_IMAGE_NAME }}@sha256:%s ' *)
+          else
+            echo "Single platform detected, skipping manifest list creation..."
+            echo "The image is already available at: ${{ env.REGISTRY_PROD_ADDR }}/${{ env.UNTESTED_IMAGE_NAME }}:${{ steps.meta.outputs.version }}"
+          fi
 
       - name: Create manifest list and push without annotations
         # This step creates a manifest list for the Docker images built for different platforms.
@@ -244,10 +252,18 @@ jobs:
         # The manifest list is created without annotations if the previous step fails.
         # The manifest list is pushed to the GitHub Container Registry (GHCR) with the specified tags.
         if: steps.manifest-annotate.outcome == 'failure'
-        working-directory: /tmp/digests
+        working-directory: ${{ runner.temp }}/digests
         run: |
-          docker buildx imagetools create  $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ env.REGISTRY_PROD_ADDR }}/${{ env.UNTESTED_IMAGE_NAME }}@sha256:%s ' *)
+          # Check if we have multiple digest files (multi-platform) or just one (single-platform)
+          DIGEST_COUNT=$(ls -1 *.sha256 2>/dev/null | wc -l || echo 0)
+          if [ "$DIGEST_COUNT" -gt 1 ]; then
+            echo "Creating multi-platform manifest list without annotations..."
+            docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+              $(printf '${{ env.REGISTRY_PROD_ADDR }}/${{ env.UNTESTED_IMAGE_NAME }}@sha256:%s ' *)
+          else
+            echo "Single platform detected, skipping manifest list creation..."
+            echo "The image is already available at: ${{ env.REGISTRY_PROD_ADDR }}/${{ env.UNTESTED_IMAGE_NAME }}:${{ steps.meta.outputs.version }}"
+          fi
 
       - name: Inspect image
         # This step inspects the created manifest list to verify its contents.
