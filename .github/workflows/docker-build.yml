@@ -310,7 +310,7 @@ jobs:
       packages: read
     needs: ["docker-build", "docker-merge"]
     # We primarily want to run this when we are in a merge queue.
-    if: false  # Temporarily disabled for testing
+    if: github.event_name == 'merge_group'
     uses: ./.github/workflows/test-matrix-replicated-k8s-clusters.yaml
     with:
       image-repo: ${{ needs.docker-build.outputs.image-repo }}
@@ -341,7 +341,7 @@ jobs:
     permissions:
       statuses: write
     needs: ["replicated-compatibility-matrix-tests"]
-    if: false  # Temporarily disabled for testing
+    if: ${{ always() && github.event_name == 'merge_group' }}
     steps:
       - uses: spkane/commit-status-updater@a794d785537a8c22dec94d11ceb034021a8fd114
         if: ${{ needs.replicated-compatibility-matrix-tests.outputs.cluster-test-status == 'success' }}
@@ -370,7 +370,6 @@ jobs:
       contents: read
       packages: write
       id-token: write
-    if: false  # Temporarily disabled for testing
     steps:
       # Format the image names for OCI compliance (all lowercase)
       - name: INPUT PREP - image name formatting
