@@ -323,6 +323,7 @@ test-chart-complete: ## Run KUTTL tests for chart complete
 		$(ECHO) "❌ Error: Image $(IMAGE_NAME):$(TAG) not found locally"; \
 		$(ECHO) "💡 To build the image, run: make package-debug"; \
 		$(ECHO) "💡 To use an existing image, update TAG in the Makefile or set it manually"; \
+		$(ECHO) "💡 In CI, ensure IMAGE_REPO and IMAGE_PATH are set correctly"; \
 		exit 1; \
 	fi
 	@$(ECHO) "✅ Image $(IMAGE_NAME):$(TAG) found locally"
@@ -335,6 +336,7 @@ test-chart-complete: ## Run KUTTL tests for chart complete
 		--create-namespace \
 		--namespace $(TEST_NAMESPACE) \
 		--values tests/kuttl/clusters/complete/overrides.yaml \
+		--set components.agent.image.repository=$(IMAGE_REPO)/$(IMAGE_PATH) \
 		--set components.agent.image.tag=$(TAG)
 
 	# Wait for deployments to be ready

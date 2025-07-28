@@ -78,12 +78,11 @@ jobs:
         with:
           version: ${{ matrix.kver.k8s }}
 
-      - name: Pull Docker Image
+      - name: Set Image Variables
         run: |
-          echo "Pulling Docker image for testing..."
-          docker pull ${{ inputs.image-repo }}/${{ inputs.image-path }}:${{ inputs.image-tag }}
-          echo "Setting IMAGE_NAME and TAG for Makefile..."
-          echo "IMAGE_NAME=${{ inputs.image-repo }}/${{ inputs.image-path }}" >> $GITHUB_ENV
+          echo "Setting image variables for Makefile..."
+          echo "IMAGE_REPO=${{ inputs.image-repo }}" >> $GITHUB_ENV
+          echo "IMAGE_PATH=${{ inputs.image-path }}" >> $GITHUB_ENV
           echo "TAG=${{ inputs.image-tag }}" >> $GITHUB_ENV
 
       - name: Install Dependencies
