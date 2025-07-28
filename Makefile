@@ -318,15 +318,28 @@ tests/kuttl/clusters/%-down: ## Delete cluster and remove kubeconfig
 test-chart-complete: tests/kuttl/clusters/complete/kubeconfig helm/charts/.stamp
 test-chart-complete: ## Run KUTTL tests for chart complete
 	# Verify the required image exists before starting the test
-	@$(ECHO) "🔍 Verifying image $(IMAGE_NAME):$(TAG) exists..."
-	@if ! $(DOCKER) image inspect $(IMAGE_NAME):$(TAG) >/dev/null 2>&1; then \
-		$(ECHO) "❌ Error: Image $(IMAGE_NAME):$(TAG) not found locally"; \
-		$(ECHO) "💡 To build the image, run: make package-debug"; \
-		$(ECHO) "💡 To use an existing image, update TAG in the Makefile or set it manually"; \
-		$(ECHO) "💡 In CI, ensure IMAGE_REPO and IMAGE_PATH are set correctly"; \
-		exit 1; \
+	# In CI, the image is pulled from registry, so use the full registry path
+	@$(ECHO) "🔍 Verifying image exists..."
+	@if [ -n "$(IMAGE_REPO)" ] && [ -n "$(IMAGE_PATH)" ]; then \
+		FULL_IMAGE_NAME="$(IMAGE_REPO)/$(IMAGE_PATH):$(TAG)"; \
+		$(ECHO) "🔍 Checking for image $$FULL_IMAGE_NAME..."; \
+		if ! $(DOCKER) image inspect $$FULL_IMAGE_NAME >/dev/null 2>&1; then \
+			$(ECHO) "❌ Error: Image $$FULL_IMAGE_NAME not found locally"; \
+			$(ECHO) "💡 In CI, ensure the image was pulled from registry"; \
+			exit 1; \
+		fi; \
+		$(ECHO) "✅ Image $$FULL_IMAGE_NAME found locally"; \
+	else \
+		$(ECHO) "🔍 Checking for image $(IMAGE_NAME):$(TAG)..."; \
+		if ! $(DOCKER) image inspect $(IMAGE_NAME):$(TAG) >/dev/null 2>&1; then \
+			$(ECHO) "❌ Error: Image $(IMAGE_NAME):$(TAG) not found locally"; \
+			$(ECHO) "💡 To build the image, run: make package-debug"; \
+			$(ECHO) "💡 To use an existing image, update TAG in the Makefile or set it manually"; \
+			$(ECHO) "💡 In CI, ensure IMAGE_REPO and IMAGE_PATH are set correctly"; \
+			exit 1; \
+		fi; \
+		$(ECHO) "✅ Image $(IMAGE_NAME):$(TAG) found locally"; \
 	fi
-	@$(ECHO) "✅ Image $(IMAGE_NAME):$(TAG) found locally"
 	@$(ECHO) ""
 
 	$(RM) -f kubeconfig
