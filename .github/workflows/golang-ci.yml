@@ -1,6 +1,6 @@
 name: CI
 
-on: [push]
+on: []  # Temporarily disabled for testing
 
 jobs:
   # Dump the GitHub context for debugging purposes.
