@@ -57,8 +57,8 @@ jobs:
             { k8s: v1.23.17, k3s: v1.23.17+k3s1, platform: linux/amd64 },
             { k8s: v1.25.16, k3s: v1.25.16+k3s4, platform: linux/amd64 },
             { k8s: v1.27.16, k3s: v1.27.16+k3s1, platform: linux/amd64 },
-            { k8s: v1.29.15, k3s: v1.29.15+k3s1, platform: linux/amd64 },
-            { k8s: v1.31.7, k3s: v1.31.7+k3s1, platform: linux/amd64 },
+            { k8s: v1.33.2, k3s: v1.33.2+k3s1, platform: linux/amd64 },
+            { k8s: v1.33.2, k3s: v1.33.2+k3s2, platform: linux/amd64 },
             { k8s: v1.32.3, k3s: v1.32.3+k3s1, platform: linux/amd64 },
           ]
 
