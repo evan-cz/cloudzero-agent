@@ -39,7 +39,8 @@ jobs:
       matrix:
         platform:
           - linux/amd64
-    runs-on: ubuntu-latest
+          - linux/arm64
+    runs-on: ${{ matrix.platform == 'linux/amd64' && 'ubuntu-latest' || matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' }}
     permissions:
       contents: read
       packages: write
@@ -65,8 +66,8 @@ jobs:
         run: |
           docker context create builders
 
-      - # Install buildx for multi-platform builds
-        name: SETUP - Docker Buildx
+      # Install buildx for multi-platform builds
+      - name: SETUP - Docker Buildx
         id: install_buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
         with:
