@@ -399,6 +399,7 @@ test-chart-complete: ## Run KUTTL tests for chart complete
 .PHONY: test-ci-chart-complete
 test-ci-chart-complete: .github/workflows/.secrets ## Use ACT to run chart-complete.yaml workflow
 	$(ECHO) "Running chart-complete workflow with ACT..."
+	$(ECHO) "Note: This tests syntax only. Full testing requires Docker-in-Docker and Kubernetes tools."
 	$(ACT) workflow_dispatch -W .github/workflows/chart-complete.yaml \
 		--artifact-server-path /tmp/artifacts \
 		--env-file .github/workflows/.secrets \
