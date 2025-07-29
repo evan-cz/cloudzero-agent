@@ -41,7 +41,7 @@ concurrency:
 
 jobs:
   chart-complete:
-    name: chart-complete-${{ matrix.kver.platform }}-${{ matrix.kver.k3s }}
+    name: chart-complete-${{ matrix.kver.platform }}-${{ matrix.kver.k8s }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -53,13 +53,12 @@ jobs:
       matrix:
         kver:
           [
-            { k8s: v1.21.14, k3s: v1.21.14+k3s1, platform: linux/amd64 },
-            { k8s: v1.23.17, k3s: v1.23.17+k3s1, platform: linux/amd64 },
-            { k8s: v1.25.16, k3s: v1.25.16+k3s4, platform: linux/amd64 },
-            { k8s: v1.27.16, k3s: v1.27.16+k3s1, platform: linux/amd64 },
-            { k8s: v1.33.2, k3s: v1.33.2+k3s1, platform: linux/amd64 },
-            { k8s: v1.33.2, k3s: v1.33.2+k3s2, platform: linux/amd64 },
-            { k8s: v1.32.3, k3s: v1.32.3+k3s1, platform: linux/amd64 },
+            { k8s: v1.21.14, platform: linux/amd64 },
+            { k8s: v1.23.17, platform: linux/amd64 },
+            { k8s: v1.25.16, platform: linux/amd64 },
+            { k8s: v1.27.16, platform: linux/amd64 },
+            { k8s: v1.32.3, platform: linux/amd64 },
+            { k8s: v1.33.2, platform: linux/amd64 },
           ]
 
     steps:
@@ -152,25 +151,25 @@ jobs:
         if: failure()
         continue-on-error: true
         run: |
-          rm -f ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
-          touch ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
-          echo "---Kubectl Get All-----------------------------------------------------" &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
-          kubectl get all -A &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log || echo "[ERROR] Kubectl get all command exited error." &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
-          echo "---Kubectl Events------------------------------------------------------" &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
-          kubectl events -A &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log || echo "[ERROR] Kubectl events command exited error." &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
-          echo "---Stern Logs (testkube)------------------------------------------------" &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
-          kubectl stern -n testkube --since=3m --no-follow -t . | sort -k4 &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log || echo "[ERROR] Stern log command exited error." &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
-          echo "---Stern Logs (cz-agent)------------------------------------------------" &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
-          kubectl stern -n cz-agent --since=3m --no-follow -t . | sort -k4 &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log || echo "[ERROR] Stern log command exited error." &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
-          echo "---Collector Logs--------------------------------------------------------" &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
-          kubectl logs deployment/cloudzero-collector -n cz-agent --since=5m &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log || echo "[ERROR] Collector logs command exited error." &>> ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
+          rm -f ${{ runner.temp }}/${{ matrix.kver.k8s }}.log
+          touch ${{ runner.temp }}/${{ matrix.kver.k8s }}.log
+          echo "---Kubectl Get All-----------------------------------------------------" &>> ${{ runner.temp }}/${{ matrix.kver.k8s }}.log
+          kubectl get all -A &>> ${{ runner.temp }}/${{ matrix.kver.k8s }}.log || echo "[ERROR] Kubectl get all command exited error." &>> ${{ runner.temp }}/${{ matrix.kver.k8s }}.log
+          echo "---Kubectl Events------------------------------------------------------" &>> ${{ runner.temp }}/${{ matrix.kver.k8s }}.log
+          kubectl events -A &>> ${{ runner.temp }}/${{ matrix.kver.k8s }}.log || echo "[ERROR] Kubectl events command exited error." &>> ${{ runner.temp }}/${{ matrix.kver.k8s }}.log
+          echo "---Stern Logs (testkube)------------------------------------------------" &>> ${{ runner.temp }}/${{ matrix.kver.k8s }}.log
+          kubectl stern -n testkube --since=3m --no-follow -t . | sort -k4 &>> ${{ runner.temp }}/${{ matrix.kver.k8s }}.log || echo "[ERROR] Stern log command exited error." &>> ${{ runner.temp }}/${{ matrix.kver.k8s }}.log
+          echo "---Stern Logs (cz-agent)------------------------------------------------" &>> ${{ runner.temp }}/${{ matrix.kver.k8s }}.log
+          kubectl stern -n cz-agent --since=3m --no-follow -t . | sort -k4 &>> ${{ runner.temp }}/${{ matrix.kver.k8s }}.log || echo "[ERROR] Stern log command exited error." &>> ${{ runner.temp }}/${{ matrix.kver.k8s }}.log
+          echo "---Collector Logs--------------------------------------------------------" &>> ${{ runner.temp }}/${{ matrix.kver.k8s }}.log
+          kubectl logs deployment/cloudzero-collector -n cz-agent --since=5m &>> ${{ runner.temp }}/${{ matrix.kver.k8s }}.log || echo "[ERROR] Collector logs command exited error." &>> ${{ runner.temp }}/${{ matrix.kver.k8s }}.log
 
       - name: Upload Failure Logs
         uses: actions/upload-artifact@v4
         if: always() && steps.logs.conclusion == 'success'
         with:
-          name: ${{ matrix.kver.k3s }}.log
-          path: ${{ runner.temp }}/${{ matrix.kver.k3s }}.log
+          name: ${{ matrix.kver.k8s }}.log
+          path: ${{ runner.temp }}/${{ matrix.kver.k8s }}.log
           retention-days: 1
           if-no-files-found: warn
 

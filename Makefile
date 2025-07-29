@@ -298,7 +298,7 @@ TEST_RELEASE_NAME         ?= test
 tests/kuttl/clusters/%/kubeconfig: ## Create kubeconfig for cluster
 	$(ECHO) "Creating cluster: $*"
 	$(MKDIR) -p $(dir $@)
-	$(KIND) create cluster --name $* --image kindest/node:$(TEST_K8S_VERSION)
+	$(KIND) create cluster --name $* --image kindest/node:v1.33.2
 	$(KIND) get kubeconfig --name $* > $@
 	$(CHMOD) 600 $@
 	$(KUBECTL) --kubeconfig=$@ wait --for=condition=Ready nodes --all --timeout=4m
