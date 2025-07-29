@@ -294,13 +294,14 @@ TEST_KIND_IMAGE_VERSION   ?= v1.33.2
 TEST_PLATFORM             ?= linux/amd64
 TEST_NAMESPACE            ?= cz-agent
 TEST_RELEASE_NAME         ?= test
+TEST_CLUSTER_NAME         ?= complete
 
 # Pattern rule for cluster kubeconfig files
 tests/kuttl/clusters/%/kubeconfig: ## Create kubeconfig for cluster
-	$(ECHO) "Creating cluster: $*"
+	$(ECHO) "Creating cluster: $(if $(TEST_CLUSTER_NAME),$(TEST_CLUSTER_NAME),$*)"
 	$(MKDIR) -p $(dir $@)
-	$(KIND) create cluster --name $* --image kindest/node:$(TEST_KIND_IMAGE_VERSION)
-	$(KIND) get kubeconfig --name $* > $@
+	$(KIND) create cluster --name $(if $(TEST_CLUSTER_NAME),$(TEST_CLUSTER_NAME),$*) --image kindest/node:$(TEST_KIND_IMAGE_VERSION)
+	$(KIND) get kubeconfig --name $(if $(TEST_CLUSTER_NAME),$(TEST_CLUSTER_NAME),$*) > $@
 	$(CHMOD) 600 $@
 	$(KUBECTL) --kubeconfig=$@ wait --for=condition=Ready nodes --all --timeout=4m
 	$(KUBECTL) --kubeconfig=$@ wait --for=condition=Available deployment/coredns -n kube-system --timeout=4m
@@ -311,42 +312,33 @@ tests/kuttl/clusters/%-down: ## Delete cluster and remove kubeconfig
 	@if [ -f tests/kuttl/clusters/$*/kubeconfig ]; then \
 		$(KUBECTL) --kubeconfig=tests/kuttl/clusters/$*/kubeconfig delete namespace $(TEST_NAMESPACE) --ignore-not-found=true; \
 	fi
-	$(KIND) delete cluster --name $* || true
+	$(KIND) delete cluster --name $(if $(TEST_CLUSTER_NAME),$(TEST_CLUSTER_NAME),$*) || true
 	$(RM) -f tests/kuttl/clusters/$*/kubeconfig
+
+# Check that the required Docker image exists
+.PHONY: check-image-exists
+check-image-exists:
+	@$(ECHO) "🔍 Verifying image exists..."
+	@FULL_IMAGE_NAME="$(IMAGE_REPO)/$(IMAGE_PATH):$(TAG)"; \
+	$(ECHO) "🔍 Checking for image $$FULL_IMAGE_NAME..."; \
+	if ! $(DOCKER) image inspect $$FULL_IMAGE_NAME >/dev/null 2>&1; then \
+		$(ECHO) "❌ Error: Image $$FULL_IMAGE_NAME not found locally"; \
+		$(ECHO) "💡 To build the image, run: make package or make package-debug"; \
+		$(ECHO) "💡 In CI, ensure the image was pulled from registry"; \
+		exit 1; \
+	fi; \
+	$(ECHO) "✅ Image $$FULL_IMAGE_NAME found"
+	@$(ECHO) ""
 
 # Run the actual KUTTL tests for chart complete
 .PHONY: test-chart-complete
-test-chart-complete: tests/kuttl/clusters/complete/kubeconfig helm/charts/.stamp
+test-chart-complete: check-image-exists tests/kuttl/clusters/complete/kubeconfig helm/charts/.stamp
 test-chart-complete: ## Run KUTTL tests for chart complete
-	# Verify the required image exists before starting the test
-	# In CI, the image is pulled from registry, so use the full registry path
-	@$(ECHO) "🔍 Verifying image exists..."
-	@if [ -n "$(IMAGE_REPO)" ] && [ -n "$(IMAGE_PATH)" ]; then \
-		FULL_IMAGE_NAME="$(IMAGE_REPO)/$(IMAGE_PATH):$(TAG)"; \
-		$(ECHO) "🔍 Checking for image $$FULL_IMAGE_NAME..."; \
-		if ! $(DOCKER) image inspect $$FULL_IMAGE_NAME >/dev/null 2>&1; then \
-			$(ECHO) "❌ Error: Image $$FULL_IMAGE_NAME not found locally"; \
-			$(ECHO) "💡 In CI, ensure the image was pulled from registry"; \
-			exit 1; \
-		fi; \
-		$(ECHO) "✅ Image $$FULL_IMAGE_NAME found locally"; \
-	else \
-		$(ECHO) "🔍 Checking for image $(IMAGE_NAME):$(TAG)..."; \
-		if ! $(DOCKER) image inspect $(IMAGE_NAME):$(TAG) >/dev/null 2>&1; then \
-			$(ECHO) "❌ Error: Image $(IMAGE_NAME):$(TAG) not found locally"; \
-			$(ECHO) "💡 To build the image, run: make package-debug"; \
-			$(ECHO) "💡 To use an existing image, update TAG in the Makefile or set it manually"; \
-			$(ECHO) "💡 In CI, ensure IMAGE_REPO and IMAGE_PATH are set correctly"; \
-			exit 1; \
-		fi; \
-		$(ECHO) "✅ Image $(IMAGE_NAME):$(TAG) found locally"; \
-	fi
-	@$(ECHO) ""
 
 	$(RM) -f kubeconfig
 
-	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(HELM) --namespace $(TEST_NAMESPACE) uninstall complete || true
-	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(HELM) --namespace $(TEST_NAMESPACE) install complete ./helm \
+	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(HELM) --namespace $(TEST_NAMESPACE) uninstall $(TEST_RELEASE_NAME) || true
+	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(HELM) --namespace $(TEST_NAMESPACE) install $(TEST_RELEASE_NAME) ./helm \
 		--create-namespace \
 		--namespace $(TEST_NAMESPACE) \
 		--values tests/kuttl/clusters/complete/overrides.yaml \
@@ -356,10 +348,10 @@ test-chart-complete: ## Run KUTTL tests for chart complete
 	# Wait for deployments to be ready
 	$(KUBECTL) --kubeconfig=tests/kuttl/clusters/complete/kubeconfig wait deployment -n $(TEST_NAMESPACE) --timeout=300s \
 		--for condition=Available=True \
-		complete-aggregator \
-		complete-cloudzero-agent-webhook-server \
-		complete-cloudzero-state-metrics \
-		complete-cloudzero-agent-server
+		$(TEST_RELEASE_NAME)-aggregator \
+		$(TEST_RELEASE_NAME)-cloudzero-agent-webhook-server \
+		$(TEST_RELEASE_NAME)-cloudzero-state-metrics \
+		$(TEST_RELEASE_NAME)-cloudzero-agent-server
 
 	# Wait for init-cert job to complete
 	$(KUBECTL) --kubeconfig=tests/kuttl/clusters/complete/kubeconfig wait job -n $(TEST_NAMESPACE) --timeout=300s \
@@ -377,7 +369,7 @@ test-chart-complete: ## Run KUTTL tests for chart complete
 
 	# Run KUTTL tests
 	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(KUTTL) test --config tests/kuttl/clusters/complete/webhook-test/kuttl-test.yaml -v 1 tests/kuttl/clusters/complete/webhook-test/
-	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(KUTTL) test --config tests/kuttl/clusters/complete/webhook-comprehensive-test/kuttl-test.yaml -v 1 tests/kuttl/clusters/complete/webhook-comprehensive-test/
+	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(KUTTL) test --config tests/kuttl/clusters/complete/webhook-comprehensive-test/kuttl-test.yaml -v 1 tests/kuttl/clusters/comple te/webhook-comprehensive-test/
 	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(KUTTL) test --config tests/kuttl/clusters/complete/collector-test/kuttl-test.yaml -v 1 tests/kuttl/clusters/complete/collector-test/
 	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(KUTTL) test --config tests/kuttl/clusters/complete/collector-comprehensive-test/kuttl-test.yaml -v 1 tests/kuttl/clusters/complete/collector-comprehensive-test/
 
@@ -385,7 +377,7 @@ test-chart-complete: ## Run KUTTL tests for chart complete
 	$(RM) -f kubeconfig
 
 	# Uninstall CloudZero Agent
-	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(HELM) --namespace $(TEST_NAMESPACE) uninstall complete || true
+	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(HELM) --namespace $(TEST_NAMESPACE) uninstall $(TEST_RELEASE_NAME) || true
 
 # ----------- CI TESTING ------------
 
@@ -397,19 +389,17 @@ test-chart-complete: ## Run KUTTL tests for chart complete
 
 # Use ACT to run the chart-complete.yaml workflow
 .PHONY: test-ci-chart-complete
-test-ci-chart-complete: .github/workflows/.secrets ## Use ACT to run chart-complete.yaml workflow
+test-ci-chart-complete: check-image-exists .github/workflows/.secrets ## Use ACT to run chart-complete.yaml workflow
 	$(ECHO) "Running chart-complete workflow with ACT..."
-	$(ECHO) "Note: This tests syntax only. Full testing requires Docker-in-Docker and Kubernetes tools."
 	$(ACT) workflow_dispatch -W .github/workflows/chart-complete.yaml \
 		--artifact-server-path /tmp/artifacts \
 		--env-file .github/workflows/.secrets \
-		--platform ubuntu-latest=node:18 \
+		--platform ubuntu-latest=ghcr.io/catthehacker/ubuntu:js-latest \
 		--container-architecture linux/amd64 \
 		--input image-repo=$(IMAGE_REPO) \
 		--input image-path=$(IMAGE_PATH) \
 		--input image-tag=$(TAG) \
 		--pull=false \
-		--list \
 		$(NULL)
 
 # Use ACT to run the docker-build.yml workflow
@@ -420,7 +410,7 @@ test-ci-docker-build: .github/workflows/.secrets ## Use ACT to run docker-build.
 	$(ACT) push -W .github/workflows/docker-build.yml \
 		--artifact-server-path /tmp/artifacts \
 		--env-file .github/workflows/.secrets \
-		--platform ubuntu-latest=node:18 \
+		--platform ubuntu-latest=ghcr.io/catthehacker/ubuntu:js-latest \
 		--container-architecture linux/amd64 \
 		--pull=false \
 		--list \
