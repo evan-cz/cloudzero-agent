@@ -290,6 +290,7 @@ test-smoke: ## Run the smoke tests
 
 # Generic testing configuration
 TEST_K8S_VERSION          ?= v1.32.3
+TEST_KIND_IMAGE_VERSION   ?= v1.33.2
 TEST_PLATFORM             ?= linux/amd64
 TEST_NAMESPACE            ?= cz-agent
 TEST_RELEASE_NAME         ?= test
@@ -298,7 +299,7 @@ TEST_RELEASE_NAME         ?= test
 tests/kuttl/clusters/%/kubeconfig: ## Create kubeconfig for cluster
 	$(ECHO) "Creating cluster: $*"
 	$(MKDIR) -p $(dir $@)
-	$(KIND) create cluster --name $* --image kindest/node:v1.33.2
+	$(KIND) create cluster --name $* --image kindest/node:$(TEST_KIND_IMAGE_VERSION)
 	$(KIND) get kubeconfig --name $* > $@
 	$(CHMOD) 600 $@
 	$(KUBECTL) --kubeconfig=$@ wait --for=condition=Ready nodes --all --timeout=4m
