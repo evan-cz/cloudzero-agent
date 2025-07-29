@@ -114,7 +114,7 @@ jobs:
       - name: Install Dependencies
         run: |
           echo "Installing dependencies..."
-          make install-tools
+          make install-tools-go
 
       - name: Install Krew and Plugins
         uses: nick-fields/retry@v3
