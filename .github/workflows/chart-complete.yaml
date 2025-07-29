@@ -64,10 +64,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -133,14 +129,16 @@ jobs:
           # Install kind if not available
           if ! command -v kind &> /dev/null; then
             echo "Installing kind..."
-            curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.27.0/kind-linux-amd64
+            curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.29.0/kind-linux-amd64
             chmod +x ./kind
             mv ./kind /usr/local/bin/kind
           fi
+          # Create unique cluster name based on matrix (using valid characters only)
+          CLUSTER_NAME="complete-${{ matrix.kver.platform == 'linux/amd64' && 'amd64' || matrix.kver.platform == 'linux/arm64' && 'arm64' || matrix.kver.platform }}-${{ matrix.kver.k8s }}"
           # Clean up any existing cluster
-          kind delete cluster --name complete || true
-          # Create the cluster
-          make tests/kuttl/clusters/complete/kubeconfig CLUSTER_TYPE=kind TEST_K8S_VERSION=${{ matrix.kver.k8s }}
+          kind delete cluster --name $CLUSTER_NAME || true
+          # Create the cluster with unique name
+          make tests/kuttl/clusters/complete/kubeconfig CLUSTER_TYPE=kind TEST_K8S_VERSION=${{ matrix.kver.k8s }} TEST_CLUSTER_NAME=$CLUSTER_NAME
           # Set up kubeconfig
           mkdir -p $HOME/.kube
           cp tests/kuttl/clusters/complete/kubeconfig $HOME/.kube/config
@@ -181,4 +179,5 @@ jobs:
         if: always()
         run: |
           echo "Cleaning up Kind cluster..."
-          kind delete cluster --name complete || true
+          CLUSTER_NAME="complete-${{ matrix.kver.platform == 'linux/amd64' && 'amd64' || matrix.kver.platform == 'linux/arm64' && 'arm64' || matrix.kver.platform }}-${{ matrix.kver.k8s }}"
+          kind delete cluster --name $CLUSTER_NAME || true
