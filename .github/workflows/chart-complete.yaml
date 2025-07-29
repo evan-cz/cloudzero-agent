@@ -96,6 +96,8 @@ jobs:
           tar -xzf ./stern.tar.gz
           chmod +x ./stern
           sudo mv ./stern /usr/local/bin/stern
+          echo "Stern installed at: $(which stern || echo 'stern not found in PATH')"
+          stern --version
 
       - name: Set Image Variables
         run: |
@@ -110,12 +112,9 @@ jobs:
           docker pull ${{ inputs.image-repo }}/${{ inputs.image-path }}:${{ inputs.image-tag }}
 
       - name: Install Dependencies
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          command: |
-            make install-tools
+        run: |
+          echo "Installing dependencies..."
+          make install-tools
 
       - name: Install Krew and Plugins
         uses: nick-fields/retry@v3
