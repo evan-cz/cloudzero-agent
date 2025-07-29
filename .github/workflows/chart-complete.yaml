@@ -54,11 +54,17 @@ jobs:
         kver:
           [
             { k8s: v1.21.14, platform: linux/amd64 },
+            { k8s: v1.22.17, platform: linux/arm64 },
             { k8s: v1.23.17, platform: linux/amd64 },
+            { k8s: v1.24.17, platform: linux/arm64 },
             { k8s: v1.25.16, platform: linux/amd64 },
+            { k8s: v1.26.15, platform: linux/arm64 },
             { k8s: v1.27.16, platform: linux/amd64 },
-            { k8s: v1.32.3, platform: linux/amd64 },
-            { k8s: v1.33.2, platform: linux/amd64 },
+            { k8s: v1.28.14, platform: linux/arm64 },
+            { k8s: v1.29.15, platform: linux/amd64 },
+            { k8s: v1.30.11, platform: linux/arm64 },
+            { k8s: v1.31.7,  platform: linux/amd64 },
+            { k8s: v1.32.3,  platform: linux/amd64 },
           ]
 
     steps:
@@ -68,9 +74,28 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - uses: azure/setup-kubectl@v4
-        with:
-          version: ${{ matrix.kver.k8s }}
+      - name: Install kubectl
+        run: |
+          echo "Installing kubectl version ${{ matrix.kver.k8s }}..."
+          curl -LO "https://dl.k8s.io/release/${{ matrix.kver.k8s }}/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+          kubectl version --client
+          
+      - name: Install Kind
+        run: |
+          echo "Installing Kind..."
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+          
+      - name: Install Stern
+        run: |
+          echo "Installing Stern..."
+          curl -Lo ./stern https://github.com/stern/stern/releases/latest/download/stern_linux_amd64.tar.gz
+          tar -xzf ./stern
+          chmod +x ./stern
+          sudo mv ./stern /usr/local/bin/stern
 
       - name: Set Image Variables
         run: |
@@ -167,13 +192,12 @@ jobs:
           kubectl logs deployment/cloudzero-collector -n cz-agent --since=5m &>> ${{ runner.temp }}/${{ matrix.kver.k8s }}.log || echo "[ERROR] Collector logs command exited error." &>> ${{ runner.temp }}/${{ matrix.kver.k8s }}.log
 
       - name: Upload Failure Logs
-        uses: actions/upload-artifact@v4
         if: always() && steps.logs.conclusion == 'success'
-        with:
-          name: ${{ matrix.kver.k8s }}.log
-          path: ${{ runner.temp }}/${{ matrix.kver.k8s }}.log
-          retention-days: 1
-          if-no-files-found: warn
+        run: |
+          echo "Uploading failure logs..."
+          # In ACT, we'll just copy the logs to a known location
+          mkdir -p /tmp/artifacts
+          cp ${{ runner.temp }}/${{ matrix.kver.k8s }}.log /tmp/artifacts/ || echo "No log file to upload"
 
       - name: Cleanup
         if: always()

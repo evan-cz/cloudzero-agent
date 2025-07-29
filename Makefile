@@ -396,6 +396,7 @@ test-ci-chart-complete: check-image-exists .github/workflows/.secrets ## Use ACT
 		--env-file .github/workflows/.secrets \
 		--platform ubuntu-latest=ghcr.io/catthehacker/ubuntu:js-latest \
 		--container-architecture linux/amd64 \
+		--env ACTIONS_RUNNER_DEBUG=1 \
 		--input image-repo=$(IMAGE_REPO) \
 		--input image-path=$(IMAGE_PATH) \
 		--input image-tag=$(TAG) \
