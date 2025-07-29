@@ -369,7 +369,7 @@ test-chart-complete: ## Run KUTTL tests for chart complete
 
 	# Run KUTTL tests
 	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(KUTTL) test --config tests/kuttl/clusters/complete/webhook-test/kuttl-test.yaml -v 1 tests/kuttl/clusters/complete/webhook-test/
-	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(KUTTL) test --config tests/kuttl/clusters/complete/webhook-comprehensive-test/kuttl-test.yaml -v 1 tests/kuttl/clusters/comple te/webhook-comprehensive-test/
+	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(KUTTL) test --config tests/kuttl/clusters/complete/webhook-comprehensive-test/kuttl-test.yaml -v 1 tests/kuttl/clusters/complete/webhook-comprehensive-test/
 	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(KUTTL) test --config tests/kuttl/clusters/complete/collector-test/kuttl-test.yaml -v 1 tests/kuttl/clusters/complete/collector-test/
 	KUBECONFIG=tests/kuttl/clusters/complete/kubeconfig $(KUTTL) test --config tests/kuttl/clusters/complete/collector-comprehensive-test/kuttl-test.yaml -v 1 tests/kuttl/clusters/complete/collector-comprehensive-test/
 

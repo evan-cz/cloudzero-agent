@@ -8,7 +8,7 @@ clusterName: "complete"
 apiKey: "test-api-key-for-local-testing"
 
 # Cloud account ID for testing (required by agent)
-cloudAccountId: "test-account-id-for-local-testing"
+cloudAccountId: "1234567890"
 
 # Region for testing (required by agent)
 region: "us-east-1"
