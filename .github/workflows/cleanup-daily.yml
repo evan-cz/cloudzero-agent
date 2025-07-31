@@ -1,5 +1,5 @@
 name: CleanDaily
-on: []  # Temporarily disabled for testing
+on: [] # Temporarily disabled for testing
 
 concurrency:
   # This concurrency group ensures that only one job in the group runs at a time.

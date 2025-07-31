@@ -1,6 +1,6 @@
 name: Manual Prepare Release
 
-on: []  # Temporarily disabled for testing
+on: [] # Temporarily disabled for testing
 
 jobs:
   release-to-main:

@@ -14,7 +14,7 @@
 
 name: Mirror Helm Chart
 
-on: []  # Temporarily disabled for testing
+on: [] # Temporarily disabled for testing
 
 jobs:
   mirror-helm-chart:

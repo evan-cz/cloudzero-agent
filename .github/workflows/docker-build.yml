@@ -276,7 +276,7 @@ jobs:
 
       - name: SECURITY - Grype Docker Image Scan
         uses: anchore/scan-action@v6
-        if: false  # Temporarily disabled for testing
+        if: false # Temporarily disabled for testing
         with:
           image: ${{ env.REGISTRY_PROD_ADDR }}/${{ env.UNTESTED_IMAGE_NAME }}:${{ steps.meta.outputs.version }}
           fail-build: true
@@ -284,7 +284,7 @@ jobs:
 
       - name: SECURITY - Trivy Docker Image Scan
         uses: aquasecurity/trivy-action@0.32.0
-        if: false  # Temporarily disabled for testing
+        if: false # Temporarily disabled for testing
         with:
           image-ref: ${{ env.REGISTRY_PROD_ADDR }}/${{ env.UNTESTED_IMAGE_NAME }}:${{ steps.meta.outputs.version }}
           format: "table"
