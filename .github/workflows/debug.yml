@@ -1,0 +1,73 @@
+name: Debug - Dump Contexts
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+
+jobs:
+  dump-contexts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump all GitHub Actions contexts
+        env:
+          GITHUB_CONTEXT: ${{ toJSON(github) }}
+          ENV_CONTEXT: ${{ toJSON(env) }}
+          JOB_CONTEXT: ${{ toJSON(job) }}
+          STEPS_CONTEXT: ${{ toJSON(steps) }}
+          RUNNER_CONTEXT: ${{ toJSON(runner) }}
+          SECRETS_CONTEXT: ${{ toJSON(secrets) }}
+          STRATEGY_CONTEXT: ${{ toJSON(strategy) }}
+          MATRIX_CONTEXT: ${{ toJSON(matrix) }}
+          NEEDS_CONTEXT: ${{ toJSON(needs) }}
+          INPUTS_CONTEXT: ${{ toJSON(inputs) }}
+        run: |
+          echo "========================================="
+          echo "GitHub Context"
+          echo "========================================="
+          echo "$GITHUB_CONTEXT"
+          echo ""
+          echo "========================================="
+          echo "Environment Context"
+          echo "========================================="
+          echo "$ENV_CONTEXT"
+          echo ""
+          echo "========================================="
+          echo "Job Context"
+          echo "========================================="
+          echo "$JOB_CONTEXT"
+          echo ""
+          echo "========================================="
+          echo "Steps Context"
+          echo "========================================="
+          echo "$STEPS_CONTEXT"
+          echo ""
+          echo "========================================="
+          echo "Runner Context"
+          echo "========================================="
+          echo "$RUNNER_CONTEXT"
+          echo ""
+          echo "========================================="
+          echo "Secrets Context"
+          echo "========================================="
+          echo "$SECRETS_CONTEXT"
+          echo ""
+          echo "========================================="
+          echo "Strategy Context"
+          echo "========================================="
+          echo "$STRATEGY_CONTEXT"
+          echo ""
+          echo "========================================="
+          echo "Matrix Context"
+          echo "========================================="
+          echo "$MATRIX_CONTEXT"
+          echo ""
+          echo "========================================="
+          echo "Needs Context"
+          echo "========================================="
+          echo "$NEEDS_CONTEXT"
+          echo ""
+          echo "========================================="
+          echo "Inputs Context"
+          echo "========================================="
+          echo "$INPUTS_CONTEXT"
